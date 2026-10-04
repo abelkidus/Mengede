@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mengede-dark: #092328;
+  --color-mengede-teal: #12544F;
+  --color-mengede-primary: #2A835F;
+  --color-mengede-sage: #8BBB92;
+}
