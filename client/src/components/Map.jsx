@@ -13,7 +13,11 @@ const INITIAL_VIEW_STATE = {
   bearing: 0,
 };
 
-export default function TerminalMap({ onSelectTerminal, selectedTerminal }) {
+export default function TerminalMap({
+  onSelectTerminal,
+  selectedTerminal,
+  onOpenAdmin,
+}) {
   const [terminals, setTerminals] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredTerminal, setHoveredTerminal] = useState(null);
@@ -89,14 +93,16 @@ export default function TerminalMap({ onSelectTerminal, selectedTerminal }) {
             )}
           </div>
 
-          {/* Profile / Action Button */}
+          {/* Profile / Admin Moderation Button */}
           <div className="pointer-events-auto shrink-0">
             <button
               type="button"
-              className="w-12 h-12 rounded-full bg-mengede-primary flex items-center justify-center shadow-[0_4px_16px_rgba(42,131,95,0.35)] text-white hover:opacity-90 active:scale-95 transition-all border-2 border-white/80"
-              aria-label="User Profile"
+              onClick={onOpenAdmin}
+              className="w-12 h-12 rounded-full bg-mengede-primary flex items-center justify-center shadow-[0_4px_16px_rgba(42,131,95,0.35)] text-white hover:opacity-90 active:scale-95 transition-all border-2 border-white/80 cursor-pointer"
+              aria-label="Open Admin Moderation Hub"
+              title="Admin Moderation Hub"
             >
-              <span className="material-symbols-outlined text-[20px]">person</span>
+              <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
             </button>
           </div>
         </div>

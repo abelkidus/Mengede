@@ -2,8 +2,10 @@ import { useState } from 'react';
 import TerminalMap from './components/Map';
 import TerminalModal from './components/TerminalModal';
 import SubmitRouteForm from './components/SubmitRouteForm';
+import AdminDashboard from './components/AdminDashboard';
 
 function App() {
+  const [currentView, setCurrentView] = useState('map'); // 'map' | 'admin'
   const [selectedTerminal, setSelectedTerminal] = useState(null);
   const [isSubmittingRoute, setIsSubmittingRoute] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
@@ -12,6 +14,10 @@ function App() {
     setToastMessage(message);
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  if (currentView === 'admin') {
+    return <AdminDashboard onBackToMap={() => setCurrentView('map')} />;
+  }
 
   return (
     <main className="w-full h-screen overflow-hidden relative">
@@ -22,6 +28,7 @@ function App() {
           setSelectedTerminal(terminal);
           setIsSubmittingRoute(false);
         }}
+        onOpenAdmin={() => setCurrentView('admin')}
       />
 
       {/* Screen 2: Terminal Routes & Fares Bottom Sheet Modal */}
