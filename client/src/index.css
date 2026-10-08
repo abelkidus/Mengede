@@ -1,8 +1,28 @@
 @import "tailwindcss";
+@import "mapbox-gl/dist/mapbox-gl.css";
 
 @theme {
   --color-mengede-dark: #092328;
   --color-mengede-teal: #12544F;
   --color-mengede-primary: #2A835F;
   --color-mengede-sage: #8BBB92;
+  --color-mengede-surface: #EEFCFA;
+  --color-mengede-surface-container: #E2F1EE;
+  --color-mengede-surface-high: #DCEBE9;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right {
+  display: none !important;
 }
