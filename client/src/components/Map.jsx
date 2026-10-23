@@ -124,36 +124,83 @@ export default function TerminalMap({
           </div>
         </div>
 
-        {/* Search Results Dropdown Preview */}
+        {/* Floating Autocomplete Dropdown Menu */}
         {searchQuery.trim() && (
-          <div className="max-w-md mx-auto mt-2 pointer-events-auto">
-            <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-white/60 max-h-60 overflow-y-auto p-2">
+          <div className="max-w-md mx-auto mt-2 pointer-events-auto animate-fade-in">
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_12px_32px_-4px_rgba(9,35,40,0.18)] border border-white/60 max-h-72 overflow-y-auto p-2">
               {filteredTerminals.length > 0 ? (
-                filteredTerminals.map((terminal) => (
-                  <button
-                    key={terminal.id}
-                    onClick={() => {
-                      handleTerminalClick(terminal);
-                      setSearchQuery('');
-                    }}
-                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-mengede-surface-container flex items-center gap-3 transition-colors group"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-mengede-primary/10 text-mengede-primary flex items-center justify-center shrink-0 group-hover:bg-mengede-primary group-hover:text-white transition-colors">
-                      <span className="material-symbols-outlined text-[18px]">local_taxi</span>
-                    </div>
-                    <div className="flex-1 truncate">
-                      <div className="text-[14px] font-semibold text-mengede-dark truncate">
-                        {terminal.name}
-                      </div>
-                      <div className="text-[12px] text-mengede-dark/60">
-                        {terminal.routes?.length || 0} active routes
-                      </div>
-                    </div>
-                  </button>
-                ))
+                <div className="space-y-1">
+                  {filteredTerminals.map((terminal) => {
+                    const query = searchQuery.trim().toLowerCase();
+                    const approvedRoutes = terminal.routes?.filter(
+                      (r) => !r.status || r.status === 'APPROVED'
+                    ) || [];
+                    const matchingDestinations = [
+                      ...new Set(
+                        approvedRoutes
+                          .filter((r) => r.destinationName?.toLowerCase().includes(query))
+                          .map((r) => r.destinationName)
+                      ),
+                    ];
+
+                    return (
+                      <button
+                        key={terminal.id}
+                        type="button"
+                        onClick={() => {
+                          handleTerminalClick(terminal);
+                          setSearchQuery('');
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 rounded-xl transition-all duration-150 flex items-center gap-3 group cursor-pointer hover:bg-mengede-surface-container/70 active:bg-mengede-surface-high"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-mengede-surface-container text-mengede-primary flex items-center justify-center shrink-0 group-hover:bg-mengede-primary group-hover:text-white transition-all duration-150 shadow-xs">
+                          <span className="material-symbols-outlined text-[18px]">
+                            local_taxi
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0 truncate">
+                          <div className="text-[14px] font-semibold text-mengede-dark group-hover:text-mengede-teal transition-colors truncate">
+                            {terminal.name}
+                          </div>
+                          {matchingDestinations.length > 0 ? (
+                            <div className="text-[12px] text-mengede-teal flex items-center gap-1.5 truncate font-medium">
+                              <span className="material-symbols-outlined text-[14px] text-mengede-primary shrink-0">
+                                arrow_forward
+                              </span>
+                              <span className="truncate">
+                                {matchingDestinations.length === 1
+                                  ? `Route to ${matchingDestinations[0]}`
+                                  : `Routes to ${matchingDestinations.join(', ')}`}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-[12px] text-mengede-dark/60 truncate">
+                              {approvedRoutes.length > 0
+                                ? `${approvedRoutes.length} active ${
+                                    approvedRoutes.length === 1 ? 'route' : 'routes'
+                                  }`
+                                : 'No active routes'}
+                            </div>
+                          )}
+                        </div>
+                        <span className="material-symbols-outlined text-[18px] text-mengede-dark/25 group-hover:text-mengede-primary group-hover:translate-x-0.5 transition-all shrink-0">
+                          navigate_next
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               ) : (
-                <div className="px-4 py-3 text-center text-[13px] text-mengede-dark/60">
-                  No terminals found matching "{searchQuery}"
+                <div className="py-7 px-4 text-center">
+                  <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-mengede-surface-container flex items-center justify-center text-mengede-primary/70">
+                    <span className="material-symbols-outlined text-[20px]">search_off</span>
+                  </div>
+                  <p className="text-[13px] font-semibold text-mengede-dark">
+                    No matching terminals or routes found
+                  </p>
+                  <p className="text-[12px] text-mengede-dark/50 mt-0.5">
+                    Try searching for another terminal or destination
+                  </p>
                 </div>
               )}
             </div>
