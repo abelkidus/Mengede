@@ -48,10 +48,20 @@ export default function TerminalMap({
     fetchTerminals();
   }, []);
 
-  // Filter terminals based on search input
-  const filteredTerminals = terminals.filter((terminal) =>
-    terminal.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter terminals dynamically based on searchQuery (case-insensitive: matches terminal name OR approved route destinationName)
+  const filteredTerminals = terminals.filter((terminal) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+
+    const matchesName = terminal.name?.toLowerCase().includes(query);
+    const matchesApprovedRoute = terminal.routes?.some(
+      (route) =>
+        (!route.status || route.status === 'APPROVED') &&
+        route.destinationName?.toLowerCase().includes(query)
+    );
+
+    return Boolean(matchesName || matchesApprovedRoute);
+  });
 
   const handleTerminalClick = (terminal) => {
     if (mapRef.current) {
@@ -223,7 +233,7 @@ export default function TerminalMap({
         })}
 
         {/* Popup for Selected Terminal */}
-        {selectedTerminal && (
+        {selectedTerminal && filteredTerminals.some((t) => t.id === selectedTerminal.id) && (
           <Popup
             latitude={selectedTerminal.latitude}
             longitude={selectedTerminal.longitude}
