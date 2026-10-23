@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Map, { Marker, NavigationControl, GeolocateControl, Popup } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../utils/distance';
+import { fetchTerminals } from '../services/api';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -39,14 +40,10 @@ export default function TerminalMap({
 
   // Fetch terminals on component mount
   useEffect(() => {
-    async function fetchTerminals() {
+    async function loadTerminals() {
       try {
         setLoading(true);
-        const res = await fetch('/api/terminals');
-        if (!res.ok) {
-          throw new Error(`Failed to fetch terminals: ${res.statusText}`);
-        }
-        const data = await res.json();
+        const data = await fetchTerminals();
         setTerminals(data);
       } catch (err) {
         console.error('Error fetching terminals:', err);
@@ -56,7 +53,7 @@ export default function TerminalMap({
       }
     }
 
-    fetchTerminals();
+    loadTerminals();
   }, []);
 
   // Filter terminals dynamically based on searchQuery (case-insensitive: matches terminal name OR approved route destinationName)

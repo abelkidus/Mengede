@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { submitRoute } from '../services/api';
 
 export default function SubmitRouteForm({
   terminal,
@@ -34,23 +35,11 @@ export default function SubmitRouteForm({
 
     try {
       setSubmitting(true);
-      const res = await fetch('/api/routes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          originId: terminal.id,
-          destinationName: destinationName.trim(),
-          fare: parsedFare,
-        }),
+      const data = await submitRoute({
+        originId: terminal.id,
+        destinationName: destinationName.trim(),
+        fare: parsedFare,
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit route.');
-      }
 
       setSuccess(true);
       setTimeout(() => {

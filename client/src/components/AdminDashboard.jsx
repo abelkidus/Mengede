@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchPendingRoutes as apiFetchPendingRoutes, updateRouteStatus } from '../services/api';
 
 export default function AdminDashboard({ onBackToMap }) {
   const [pendingRoutes, setPendingRoutes] = useState([]);
@@ -18,15 +19,11 @@ export default function AdminDashboard({ onBackToMap }) {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/admin/pending');
-      if (!res.ok) {
-        throw new Error(`Failed to load pending submissions: ${res.statusText}`);
-      }
-      const data = await res.json();
+      const data = await apiFetchPendingRoutes();
       setPendingRoutes(data);
     } catch (err) {
       console.error('Error fetching pending routes:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to load pending submissions.');
     } finally {
       setLoading(false);
     }
@@ -46,18 +43,7 @@ export default function AdminDashboard({ onBackToMap }) {
     setActionInProgress((prev) => ({ ...prev, [routeId]: newStatus }));
 
     try {
-      const res = await fetch(`/api/admin/routes/${routeId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || `Failed to update status to ${newStatus}`);
-      }
+      await updateRouteStatus(routeId, newStatus);
 
       showToast(
         `Route to "${targetRoute.destinationName}" ${
