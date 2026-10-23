@@ -1,11 +1,15 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import TerminalMap from './components/Map';
 import TerminalModal from './components/TerminalModal';
 import SubmitRouteForm from './components/SubmitRouteForm';
 import AdminDashboard from './components/AdminDashboard';
+import AdminLayout from './components/AdminLayout';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminLogin from './components/AdminLogin';
 
-function App() {
-  const [currentView, setCurrentView] = useState('map'); // 'map' | 'admin'
+function MainMap() {
+  const navigate = useNavigate();
   const [selectedTerminal, setSelectedTerminal] = useState(null);
   const [isSubmittingRoute, setIsSubmittingRoute] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
@@ -16,10 +20,6 @@ function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  if (currentView === 'admin') {
-    return <AdminDashboard onBackToMap={() => setCurrentView('map')} />;
-  }
-
   return (
     <main className="w-full h-screen overflow-hidden relative">
       {/* Interactive Map Canvas & Top Search Overlay */}
@@ -29,7 +29,7 @@ function App() {
           setSelectedTerminal(terminal);
           setIsSubmittingRoute(false);
         }}
-        onOpenAdmin={() => setCurrentView('admin')}
+        onOpenAdmin={() => navigate('/admin')}
         userLocation={userLocation}
         onUserLocationChange={setUserLocation}
       />
@@ -72,6 +72,35 @@ function App() {
         </div>
       )}
     </main>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Main Map interface */}
+        <Route path="/" element={<MainMap />} />
+
+        {/* Public Admin Login route */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+
+        {/* Nested Protected Admin routes */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+        </Route>
+
+        {/* Catch-all redirect for 404s back to root */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

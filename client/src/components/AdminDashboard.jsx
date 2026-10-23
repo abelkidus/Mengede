@@ -89,82 +89,8 @@ export default function AdminDashboard({ onBackToMap }) {
         </div>
       )}
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-mengede-dark text-white z-40 flex-col justify-between shadow-lg">
-        <div className="flex flex-col">
-          {/* Brand Header */}
-          <div className="h-16 flex items-center gap-3 px-6 border-b border-white/10">
-            <div className="w-9 h-9 rounded-full bg-mengede-primary flex items-center justify-center shadow-md">
-              <span className="material-symbols-outlined text-white text-[20px]">
-                alt_route
-              </span>
-            </div>
-            <div>
-              <span className="text-[17px] font-bold text-white tracking-tight block">
-                Mengede
-              </span>
-              <span className="text-[10px] text-mengede-sage uppercase tracking-wider block font-semibold">
-                Moderation Hub
-              </span>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <div className="px-4 py-5">
-            <p className="px-3 pb-2 text-[11px] text-white/50 uppercase tracking-wider font-semibold">
-              Route Operations
-            </p>
-            <nav className="flex flex-col gap-1">
-              <button
-                type="button"
-                onClick={onBackToMap}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/80 hover:bg-white/10 hover:text-white transition-colors text-[14px] font-medium text-left cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[20px]">map</span>
-                Explore Map
-              </button>
-
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-mengede-teal text-white text-[14px] font-semibold">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[20px]">
-                    hourglass_top
-                  </span>
-                  Pending Queue
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-mengede-primary text-white text-[11px] font-bold">
-                  {pendingRoutes.length}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 text-[14px] font-medium">
-                <span className="material-symbols-outlined text-[20px]">fact_check</span>
-                History Log
-              </div>
-
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 text-[14px] font-medium">
-                <span className="material-symbols-outlined text-[20px]">local_taxi</span>
-                Terminals & Bays
-              </div>
-            </nav>
-          </div>
-        </div>
-
-        {/* Sidebar Footer Status */}
-        <div className="p-4">
-          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-mengede-sage animate-pulse" />
-              <span className="text-[12px] text-white/90 font-medium">
-                Audit Node Live
-              </span>
-            </div>
-            <span className="text-[11px] text-white/50 font-mono">v1.4</span>
-          </div>
-        </div>
-      </aside>
-
       {/* Main Content Area */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen">
         {/* Top Header */}
         <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-xl border-b border-gray-200/80 flex items-center justify-between px-6 lg:px-10 shadow-xs">
           <div className="flex items-center gap-3">
