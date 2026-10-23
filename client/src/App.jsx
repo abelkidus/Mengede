@@ -9,6 +9,7 @@ function App() {
   const [selectedTerminal, setSelectedTerminal] = useState(null);
   const [isSubmittingRoute, setIsSubmittingRoute] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -29,12 +30,15 @@ function App() {
           setIsSubmittingRoute(false);
         }}
         onOpenAdmin={() => setCurrentView('admin')}
+        userLocation={userLocation}
+        onUserLocationChange={setUserLocation}
       />
 
       {/* Screen 2: Terminal Routes & Fares Bottom Sheet Modal */}
       {selectedTerminal && !isSubmittingRoute && (
         <TerminalModal
           terminal={selectedTerminal}
+          userLocation={userLocation}
           onClose={() => setSelectedTerminal(null)}
           onSubmitMissingRoute={() => {
             setIsSubmittingRoute(true);

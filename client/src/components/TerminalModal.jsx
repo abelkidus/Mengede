@@ -1,11 +1,22 @@
-import React from 'react';
+import { calculateDistanceKm, formatDistance } from '../utils/distance';
 
 export default function TerminalModal({
   terminal,
+  userLocation,
   onClose,
   onSubmitMissingRoute,
 }) {
   if (!terminal) return null;
+
+  const distanceKm = userLocation && terminal
+    ? calculateDistanceKm(
+        userLocation.latitude,
+        userLocation.longitude,
+        terminal.latitude,
+        terminal.longitude
+      )
+    : null;
+  const distanceBadge = distanceKm !== null ? formatDistance(distanceKm) : null;
 
   // Filter approved routes (or all routes associated with this terminal if already filtered by the API)
   const approvedRoutes = terminal.routes?.filter(
@@ -30,9 +41,19 @@ export default function TerminalModal({
             <div className="w-8 h-8 rounded-full bg-mengede-primary/10 text-mengede-primary flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-[18px]">local_taxi</span>
             </div>
-            <h2 className="text-[20px] font-bold text-mengede-dark truncate">
-              {terminal.name}
-            </h2>
+            <div className="flex flex-col min-w-0 truncate">
+              <div className="flex items-center gap-2 truncate">
+                <h2 className="text-[20px] font-bold text-mengede-dark truncate">
+                  {terminal.name}
+                </h2>
+                {distanceBadge && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-mengede-surface-container text-mengede-primary border border-mengede-primary/20 shrink-0">
+                    <span className="material-symbols-outlined text-[12px]">near_me</span>
+                    {distanceBadge}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
           <button
             type="button"

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Map, { Marker, NavigationControl, GeolocateControl, Popup } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../utils/distance';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -17,13 +18,20 @@ export default function TerminalMap({
   onSelectTerminal,
   selectedTerminal,
   onOpenAdmin,
+  userLocation: propUserLocation,
+  onUserLocationChange,
 }) {
   const [terminals, setTerminals] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredTerminal, setHoveredTerminal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
+  const [internalUserLocation, setInternalUserLocation] = useState(null);
+  const userLocation = propUserLocation !== undefined ? propUserLocation : internalUserLocation;
+  const setUserLocation = (loc) => {
+    setInternalUserLocation(loc);
+    onUserLocationChange?.(loc);
+  };
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
   const mapRef = useRef(null);
@@ -65,6 +73,34 @@ export default function TerminalMap({
 
     return Boolean(matchesName || matchesApprovedRoute);
   });
+
+  // Calculate nearest terminal when userLocation is active
+  const nearestTerminalInfo = useMemo(() => {
+    if (!userLocation || terminals.length === 0) return null;
+
+    let nearest = null;
+    let minDistance = Infinity;
+
+    for (const t of terminals) {
+      const dist = calculateDistanceKm(
+        userLocation.latitude,
+        userLocation.longitude,
+        t.latitude,
+        t.longitude
+      );
+      if (dist !== null && dist < minDistance) {
+        minDistance = dist;
+        nearest = t;
+      }
+    }
+
+    if (!nearest) return null;
+    return {
+      terminal: nearest,
+      distanceKm: minDistance,
+      formattedDistance: formatDistanceShort(minDistance),
+    };
+  }, [userLocation, terminals]);
 
   const handleTerminalClick = (terminal) => {
     if (!terminal) return;
@@ -180,6 +216,27 @@ export default function TerminalMap({
           </div>
         </div>
 
+        {/* Floating Nearest Terminal Quick-Action Pill */}
+        {nearestTerminalInfo && !searchQuery.trim() && (
+          <div className="max-w-md mx-auto mt-2.5 flex justify-start pointer-events-auto animate-fade-in">
+            <button
+              type="button"
+              onClick={() => handleTerminalClick(nearestTerminalInfo.terminal)}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-xl border border-white/80 shadow-[0_4px_16px_rgba(9,35,40,0.12)] text-[12px] font-semibold text-mengede-dark hover:bg-white hover:text-mengede-primary hover:shadow-[0_6px_20px_rgba(42,131,95,0.2)] active:scale-95 transition-all cursor-pointer group"
+            >
+              <span className="w-5 h-5 rounded-full bg-mengede-primary/10 text-mengede-primary flex items-center justify-center shrink-0 group-hover:bg-mengede-primary group-hover:text-white transition-colors">
+                <span className="material-symbols-outlined text-[13px]">near_me</span>
+              </span>
+              <span>
+                Nearest: <span className="font-bold text-mengede-teal">{nearestTerminalInfo.terminal.name}</span> ({nearestTerminalInfo.formattedDistance})
+              </span>
+              <span className="material-symbols-outlined text-[15px] text-mengede-dark/40 group-hover:text-mengede-primary group-hover:translate-x-0.5 transition-all">
+                arrow_forward
+              </span>
+            </button>
+          </div>
+        )}
+
         {/* Floating Autocomplete Dropdown Menu */}
         {searchQuery.trim() && (
           <div className="max-w-md mx-auto mt-2 pointer-events-auto animate-fade-in">
@@ -198,6 +255,15 @@ export default function TerminalMap({
                           .map((r) => r.destinationName)
                       ),
                     ];
+                    const distanceKm = userLocation
+                      ? calculateDistanceKm(
+                          userLocation.latitude,
+                          userLocation.longitude,
+                          terminal.latitude,
+                          terminal.longitude
+                        )
+                      : null;
+                    const distanceBadge = distanceKm !== null ? formatDistance(distanceKm) : null;
 
                     return (
                       <button
@@ -215,8 +281,16 @@ export default function TerminalMap({
                           </span>
                         </div>
                         <div className="flex-1 min-w-0 truncate">
-                          <div className="text-[14px] font-semibold text-mengede-dark group-hover:text-mengede-teal transition-colors truncate">
-                            {terminal.name}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[14px] font-semibold text-mengede-dark group-hover:text-mengede-teal transition-colors truncate">
+                              {terminal.name}
+                            </span>
+                            {distanceBadge && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-mengede-surface-container text-mengede-primary shrink-0 border border-mengede-primary/15">
+                                <span className="material-symbols-outlined text-[12px]">near_me</span>
+                                {distanceBadge}
+                              </span>
+                            )}
                           </div>
                           {matchingDestinations.length > 0 ? (
                             <div className="text-[12px] text-mengede-teal flex items-center gap-1.5 truncate font-medium">
