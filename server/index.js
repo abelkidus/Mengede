@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
@@ -86,7 +88,61 @@ app.post('/api/routes', async (req, res) => {
   }
 });
 
-// 3. GET /api/admin/pending: Fetch all routes with status PENDING
+// 3. POST /api/admin/login: Authenticate admin and return a signed 24h JWT
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({
+        error: 'Username and password are required',
+      });
+    }
+
+    const expectedUsername = process.env.ADMIN_USERNAME;
+    const passwordHash = process.env.ADMIN_PASSWORD_HASH;
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!expectedUsername || !passwordHash || !jwtSecret) {
+      console.error('Admin authentication environment variables are not configured');
+      return res.status(500).json({
+        error: 'Server authentication configuration error',
+      });
+    }
+
+    // Strictly compare username to process.env.ADMIN_USERNAME
+    if (username !== expectedUsername) {
+      return res.status(401).json({
+        error: 'Invalid username or password',
+      });
+    }
+
+    // Use bcrypt.compare to verify password against process.env.ADMIN_PASSWORD_HASH
+    const isPasswordValid = await bcrypt.compare(password, passwordHash);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        error: 'Invalid username or password',
+      });
+    }
+
+    // On success, return a signed JWT expiring in 24 hours
+    const token = jwt.sign(
+      { username: expectedUsername, role: 'admin' },
+      jwtSecret,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      message: 'Login successful',
+      token,
+    });
+  } catch (error) {
+    console.error('Error during admin login:', error);
+    res.status(500).json({ error: 'Internal server error during login' });
+  }
+});
+
+// 4. GET /api/admin/pending: Fetch all routes with status PENDING
 app.get('/api/admin/pending', async (req, res) => {
   try {
     const pendingRoutes = await prisma.route.findMany({
