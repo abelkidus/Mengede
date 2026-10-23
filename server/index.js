@@ -4,6 +4,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
+const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -142,8 +143,8 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// 4. GET /api/admin/pending: Fetch all routes with status PENDING
-app.get('/api/admin/pending', async (req, res) => {
+// 4. GET /api/admin/pending: Fetch all routes with status PENDING (Protected)
+app.get('/api/admin/pending', authMiddleware, async (req, res) => {
   try {
     const pendingRoutes = await prisma.route.findMany({
       where: {
@@ -163,8 +164,8 @@ app.get('/api/admin/pending', async (req, res) => {
   }
 });
 
-// 4. PATCH /api/admin/routes/:id/status: Update a route's status to 'APPROVED' or 'REJECTED'
-app.patch('/api/admin/routes/:id/status', async (req, res) => {
+// 5. PATCH /api/admin/routes/:id/status: Update a route's status to 'APPROVED' or 'REJECTED' (Protected)
+app.patch('/api/admin/routes/:id/status', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;

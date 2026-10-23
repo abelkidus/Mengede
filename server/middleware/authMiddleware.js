@@ -35,12 +35,12 @@ function authMiddleware(req, res, next) {
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        error: 'Token has expired.',
+      return res.status(403).json({
+        error: 'Forbidden. Token has expired.',
       });
     }
-    return res.status(401).json({
-      error: 'Invalid token.',
+    return res.status(403).json({
+      error: 'Forbidden. Invalid token.',
     });
   }
 }
