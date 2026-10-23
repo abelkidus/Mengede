@@ -64,16 +64,17 @@ export default function TerminalMap({
   });
 
   const handleTerminalClick = (terminal) => {
-    if (mapRef.current) {
-      mapRef.current.flyTo({
-        center: [terminal.longitude, terminal.latitude],
-        zoom: 14.5,
-        duration: 1000,
-      });
-    }
+    if (!terminal) return;
+    mapRef.current?.flyTo({
+      center: [terminal.longitude, terminal.latitude],
+      zoom: 15,
+      duration: 1200,
+    });
     if (onSelectTerminal) {
       onSelectTerminal(terminal);
     }
+    setSearchQuery('');
+    searchInputRef.current?.blur();
   };
 
   return (
@@ -91,6 +92,16 @@ export default function TerminalMap({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (filteredTerminals.length > 0) {
+                    handleTerminalClick(filteredTerminals[0]);
+                  }
+                } else if (e.key === 'Escape') {
+                  setSearchQuery('');
+                }
+              }}
               placeholder="Search terminals (e.g. Megenagna, Mexico)..."
               className="w-full font-['Plus_Jakarta_Sans'] text-[14px] bg-transparent outline-none text-mengede-dark placeholder-mengede-dark/50"
             />
