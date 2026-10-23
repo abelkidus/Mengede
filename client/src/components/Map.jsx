@@ -24,6 +24,7 @@ export default function TerminalMap({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const mapRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Fetch terminals on component mount
   useEffect(() => {
@@ -76,6 +77,7 @@ export default function TerminalMap({
               search
             </span>
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -85,8 +87,13 @@ export default function TerminalMap({
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="p-1 text-mengede-dark/40 hover:text-mengede-dark transition-colors"
+                onClick={() => {
+                  setSearchQuery('');
+                  searchInputRef.current?.focus();
+                }}
+                aria-label="Clear search"
+                title="Clear search"
+                className="p-1 rounded-full text-mengede-dark/40 hover:text-mengede-dark hover:bg-black/5 active:scale-95 transition-all cursor-pointer flex items-center justify-center shrink-0 ml-1"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
