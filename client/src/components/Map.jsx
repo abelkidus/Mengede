@@ -92,12 +92,13 @@ export default function TerminalMap({
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setUserLocation({ latitude, longitude });
+        const newLocation = { latitude, longitude };
+        setUserLocation(newLocation);
         setIsLocating(false);
 
         mapRef.current?.flyTo({
-          center: [longitude, latitude],
-          zoom: 15,
+          center: [newLocation.longitude, newLocation.latitude],
+          zoom: 14,
           duration: 1200,
         });
       },
@@ -352,16 +353,20 @@ export default function TerminalMap({
             </div>
           </Popup>
         )}
-        {/* User Current Location Marker */}
+        {/* User Current Location Distinct Marker */}
         {userLocation && (
           <Marker
             latitude={userLocation.latitude}
             longitude={userLocation.longitude}
             anchor="center"
           >
-            <div className="relative flex items-center justify-center">
-              <span className="absolute w-8 h-8 rounded-full bg-mengede-primary/30 animate-ping pointer-events-none" />
-              <span className="w-4 h-4 rounded-full bg-mengede-primary border-2 border-white shadow-md pointer-events-none" />
+            <div className="relative flex items-center justify-center pointer-events-none">
+              {/* Tailwind animate-ping pulsing ring */}
+              <span className="absolute w-8 h-8 rounded-full bg-blue-500 opacity-60 animate-ping" />
+              <span className="absolute w-6 h-6 rounded-full bg-blue-400/25" />
+
+              {/* Solid center dot */}
+              <div className="relative w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-[0_2px_8px_rgba(37,99,235,0.6)]" />
             </div>
           </Marker>
         )}
