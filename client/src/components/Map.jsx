@@ -23,6 +23,9 @@ export default function TerminalMap({
   const [hoveredTerminal, setHoveredTerminal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState(null);
   const mapRef = useRef(null);
   const searchInputRef = useRef(null);
 
@@ -75,6 +78,47 @@ export default function TerminalMap({
     }
     setSearchQuery('');
     searchInputRef.current?.blur();
+  };
+
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ latitude, longitude });
+        setIsLocating(false);
+
+        mapRef.current?.flyTo({
+          center: [longitude, latitude],
+          zoom: 15,
+          duration: 1200,
+        });
+      },
+      (err) => {
+        setIsLocating(false);
+        let message = 'Unable to retrieve your location.';
+        if (err.code === 1) {
+          message = 'Location permission denied. Please allow location access in your browser settings.';
+        } else if (err.code === 3) {
+          message = 'Location request timed out. Please check your connection and try again.';
+        } else if (err.code === 2) {
+          message = 'Location unavailable. Your position could not be determined.';
+        }
+        setLocationError(message);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
   };
 
   return (
@@ -308,7 +352,66 @@ export default function TerminalMap({
             </div>
           </Popup>
         )}
+        {/* User Current Location Marker */}
+        {userLocation && (
+          <Marker
+            latitude={userLocation.latitude}
+            longitude={userLocation.longitude}
+            anchor="center"
+          >
+            <div className="relative flex items-center justify-center">
+              <span className="absolute w-8 h-8 rounded-full bg-mengede-primary/30 animate-ping pointer-events-none" />
+              <span className="w-4 h-4 rounded-full bg-mengede-primary border-2 border-white shadow-md pointer-events-none" />
+            </div>
+          </Marker>
+        )}
       </Map>
+
+      {/* Floating "Locate Me" Button & Dismissible Error Toast */}
+      <div className="absolute bottom-6 right-6 z-20 flex flex-col items-end gap-2.5 pointer-events-none">
+        {/* Dismissible Geolocation Error Toast */}
+        {locationError && (
+          <div className="pointer-events-auto max-w-xs bg-white/95 backdrop-blur-xl text-mengede-dark px-4 py-3 rounded-2xl shadow-[0_8px_30px_rgba(9,35,40,0.18)] border border-red-200 flex items-start gap-3 animate-fade-in">
+            <div className="w-7 h-7 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 mt-0.5">
+              <span className="material-symbols-outlined text-[16px]">location_off</span>
+            </div>
+            <div className="flex-1 text-[13px] leading-tight">
+              <div className="font-bold text-red-700 mb-0.5">Location Error</div>
+              <div className="text-mengede-dark/75">{locationError}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLocationError(null)}
+              aria-label="Dismiss location error"
+              className="text-mengede-dark/40 hover:text-mengede-dark p-1 rounded-full hover:bg-mengede-dark/5 transition-colors cursor-pointer shrink-0 -mr-1 -mt-1"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+        )}
+
+        {/* Locate Me Crosshair Button */}
+        <button
+          type="button"
+          onClick={handleLocateMe}
+          disabled={isLocating}
+          aria-label="Locate Me"
+          title="Locate Me"
+          className={`pointer-events-auto w-12 h-12 rounded-full bg-white/95 backdrop-blur-xl flex items-center justify-center shadow-[0_4px_20px_-2px_rgba(9,35,40,0.18)] border border-white/80 hover:bg-white active:scale-95 transition-all cursor-pointer disabled:cursor-wait group ${
+            userLocation
+              ? 'text-mengede-primary ring-2 ring-mengede-primary/40'
+              : 'text-mengede-dark hover:text-mengede-primary'
+          }`}
+        >
+          {isLocating ? (
+            <div className="w-5 h-5 border-2 border-mengede-primary border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <span className="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform">
+              my_location
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* Loading state indicator */}
       {loading && (
