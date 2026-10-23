@@ -1,0 +1,25 @@
+{
+  "name": "mengede",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abelkidus/Mengede.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/abelkidus/Mengede/issues"
+  },
+  "homepage": "https://github.com/abelkidus/Mengede#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}
