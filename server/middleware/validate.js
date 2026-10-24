@@ -188,9 +188,114 @@ const validate = (schema, source) => (req, res, next) => {
   }
 };
 
+/**
+ * 4. Terminal validation schemas:
+ * - createTerminalSchema: name (sanitized 2-100 chars), latitude (-90 to 90), longitude (-180 to 180)
+ * - updateTerminalSchema: params.id (positive int), optional name, latitude, longitude (at least 1 required)
+ * - deleteTerminalSchema: params.id (positive int)
+ */
+const terminalNameSchema = z
+  .string({ required_error: 'Terminal name is required' })
+  .trim()
+  .transform((val) => val.replace(/[<>]/g, '').trim())
+  .pipe(
+    z
+      .string()
+      .min(2, 'Terminal name must be between 2 and 100 characters')
+      .max(100, 'Terminal name must be between 2 and 100 characters')
+      .regex(
+        /^[a-zA-Z0-9\s\-().,']+$/,
+        'Terminal name can only contain alphanumeric characters, spaces, hyphens, parentheses, commas, and periods'
+      )
+  );
+
+const latitudeSchema = z.coerce
+  .number({ required_error: 'Latitude is required' })
+  .min(-90, 'Latitude must be between -90 and 90')
+  .max(90, 'Latitude must be between -90 and 90');
+
+const longitudeSchema = z.coerce
+  .number({ required_error: 'Longitude is required' })
+  .min(-180, 'Longitude must be between -180 and 180')
+  .max(180, 'Longitude must be between -180 and 180');
+
+const createTerminalSchema = z.object({
+  name: terminalNameSchema,
+  latitude: latitudeSchema,
+  longitude: longitudeSchema,
+});
+
+const baseUpdateTerminalSchema = z.object({
+  params: z.object({
+    id: z.coerce
+      .number({ required_error: 'Terminal ID is required' })
+      .int('Terminal ID must be an integer')
+      .positive('Terminal ID must be a positive integer'),
+  }),
+  body: z
+    .object({
+      name: terminalNameSchema.optional(),
+      latitude: latitudeSchema.optional(),
+      longitude: longitudeSchema.optional(),
+    })
+    .refine(
+      (body) =>
+        body.name !== undefined ||
+        body.latitude !== undefined ||
+        body.longitude !== undefined,
+      { message: 'At least one field (name, latitude, or longitude) must be provided for update' }
+    ),
+});
+
+const updateTerminalSchema = z.preprocess((input) => {
+  if (input && typeof input === 'object' && !('params' in input) && !('body' in input)) {
+    const { id, name, latitude, longitude } = input;
+    const body = {};
+    if (name !== undefined) body.name = name;
+    if (latitude !== undefined) body.latitude = latitude;
+    if (longitude !== undefined) body.longitude = longitude;
+    return {
+      params: { id },
+      body,
+    };
+  }
+  return input;
+}, baseUpdateTerminalSchema);
+
+updateTerminalSchema.shape = baseUpdateTerminalSchema.shape;
+updateTerminalSchema.params = baseUpdateTerminalSchema.shape.params;
+updateTerminalSchema.body = baseUpdateTerminalSchema.shape.body;
+
+const baseDeleteTerminalSchema = z.object({
+  params: z.object({
+    id: z.coerce
+      .number({ required_error: 'Terminal ID is required' })
+      .int('Terminal ID must be an integer')
+      .positive('Terminal ID must be a positive integer'),
+  }),
+});
+
+const deleteTerminalSchema = z.preprocess((input) => {
+  if (input && typeof input === 'object' && !('params' in input)) {
+    return { params: { id: input.id } };
+  }
+  return input;
+}, baseDeleteTerminalSchema);
+
+deleteTerminalSchema.shape = baseDeleteTerminalSchema.shape;
+deleteTerminalSchema.params = baseDeleteTerminalSchema.shape.params;
+
 module.exports = {
   validate,
   loginSchema,
   createRouteSchema,
   updateStatusSchema,
+  createTerminalSchema,
+  updateTerminalSchema,
+  deleteTerminalSchema,
+  destinationNameSchema,
+  fareSchema,
+  terminalNameSchema,
+  latitudeSchema,
+  longitudeSchema,
 };

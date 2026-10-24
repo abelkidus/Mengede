@@ -16,6 +16,9 @@ const {
   loginSchema,
   createRouteSchema,
   updateStatusSchema,
+  createTerminalSchema,
+  updateTerminalSchema,
+  deleteTerminalSchema,
 } = require('./middleware/validate');
 
 const app = express();
@@ -30,7 +33,7 @@ app.use(helmet());
 app.use(
   cors({
     origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PATCH'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
     credentials: true,
   })
 );
@@ -197,6 +200,87 @@ app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusS
     });
 
     res.json(updatedRoute);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 6. POST /api/admin/terminals: Create a new terminal (Protected)
+app.post('/api/admin/terminals', authMiddleware, validate(createTerminalSchema), async (req, res, next) => {
+  try {
+    const { name, latitude, longitude } = req.validatedBody || req.body;
+
+    const newTerminal = await prisma.terminal.create({
+      data: {
+        name,
+        latitude,
+        longitude,
+      },
+    });
+
+    res.status(201).json(newTerminal);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 7. PATCH /api/admin/terminals/:id: Update terminal name, latitude, or longitude (Protected)
+app.patch('/api/admin/terminals/:id', authMiddleware, validate(updateTerminalSchema), async (req, res, next) => {
+  try {
+    const terminalId = req.validatedParams?.id ?? (req.params?.id ? parseInt(req.params.id, 10) : undefined);
+    const { name, latitude, longitude } = req.validatedBody || req.body;
+
+    const existingTerminal = await prisma.terminal.findUnique({
+      where: { id: terminalId },
+    });
+
+    if (!existingTerminal) {
+      return res.status(404).json({ error: 'Terminal not found' });
+    }
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (latitude !== undefined) updateData.latitude = latitude;
+    if (longitude !== undefined) updateData.longitude = longitude;
+
+    const updatedTerminal = await prisma.terminal.update({
+      where: { id: terminalId },
+      data: updateData,
+    });
+
+    res.json(updatedTerminal);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 8. DELETE /api/admin/terminals/:id: Delete a terminal and its associated routes (Protected)
+app.delete('/api/admin/terminals/:id', authMiddleware, validate(deleteTerminalSchema), async (req, res, next) => {
+  try {
+    const terminalId = req.validatedParams?.id ?? (req.params?.id ? parseInt(req.params.id, 10) : undefined);
+
+    const existingTerminal = await prisma.terminal.findUnique({
+      where: { id: terminalId },
+    });
+
+    if (!existingTerminal) {
+      return res.status(404).json({ error: 'Terminal not found' });
+    }
+
+    // Delete associated routes first, then delete terminal atomically in transaction
+    await prisma.$transaction([
+      prisma.route.deleteMany({
+        where: { originId: terminalId },
+      }),
+      prisma.terminal.delete({
+        where: { id: terminalId },
+      }),
+    ]);
+
+    res.json({
+      message: 'Terminal deleted successfully',
+      id: terminalId,
+    });
   } catch (error) {
     next(error);
   }
