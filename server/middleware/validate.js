@@ -100,6 +100,10 @@ const validate = (schema, source) => (req, res, next) => {
 
     if (source) {
       const parsed = schema.parse(req[source]);
+      if (source === 'body') req.validatedBody = parsed;
+      if (source === 'params') req.validatedParams = parsed;
+      if (source === 'query') req.validatedQuery = parsed;
+
       if (parsed && typeof parsed === 'object') {
         Object.assign(req[source], parsed);
       } else {
@@ -113,16 +117,20 @@ const validate = (schema, source) => (req, res, next) => {
       });
 
       if (parsed.params) {
+        req.validatedParams = parsed.params;
         Object.assign(req.params, parsed.params);
       }
       if (parsed.body) {
+        req.validatedBody = parsed.body;
         req.body = parsed.body;
       }
       if (parsed.query) {
+        req.validatedQuery = parsed.query;
         Object.assign(req.query, parsed.query);
       }
     } else {
       const parsed = schema.parse(req.body);
+      req.validatedBody = parsed;
       req.body = parsed;
     }
 

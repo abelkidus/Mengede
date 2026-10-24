@@ -22,6 +22,9 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
+// Pre-computed static dummy bcrypt hash (cost factor 10) to mitigate username timing enumeration
+const DUMMY_PASSWORD_HASH = '$2b$10$kR7NhZgow5TB/H4Ac646QeZSUw..rCKNznN2EWVrMFhqzSf/h60Iu';
+
 // Middleware
 app.use(helmet());
 app.use(
@@ -66,37 +69,24 @@ app.get('/api/terminals', async (req, res) => {
 // 2. POST /api/routes: Submit a new route (originId, destinationName, fare) defaulting to PENDING
 app.post('/api/routes', submissionLimiter, validate(createRouteSchema), async (req, res) => {
   try {
-    const { originId, destinationName, fare } = req.body;
+    // Strictly extract validated variables from Zod
+    const { originId, destinationName, fare } = req.validatedBody || req.body;
 
-    if (!originId || !destinationName || fare === undefined || fare === null) {
-      return res.status(400).json({
-        error: 'originId, destinationName, and fare are required fields',
-      });
-    }
-
-    const parsedOriginId = parseInt(originId, 10);
-    const parsedFare = parseFloat(fare);
-
-    if (isNaN(parsedOriginId) || isNaN(parsedFare) || parsedFare < 0) {
-      return res.status(400).json({
-        error: 'originId must be an integer and fare must be a non-negative number',
-      });
-    }
-
-    // Ensure origin terminal exists
+    // Ensure origin terminal exists using validated terminal ID
     const terminal = await prisma.terminal.findUnique({
-      where: { id: parsedOriginId },
+      where: { id: originId },
     });
 
     if (!terminal) {
       return res.status(404).json({ error: 'Origin terminal not found' });
     }
 
+    // Insert route using strictly validated variables
     const newRoute = await prisma.route.create({
       data: {
-        originId: parsedOriginId,
-        destinationName: destinationName.trim(),
-        fare: parsedFare,
+        originId,
+        destinationName,
+        fare,
         status: 'PENDING',
       },
       include: {
@@ -114,13 +104,7 @@ app.post('/api/routes', submissionLimiter, validate(createRouteSchema), async (r
 // 3. POST /api/admin/login: Authenticate admin and return a signed 24h JWT
 app.post('/api/admin/login', loginLimiter, validate(loginSchema), async (req, res) => {
   try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({
-        error: 'Username and password are required',
-      });
-    }
+    const { username, password } = req.validatedBody || req.body;
 
     const expectedUsername = process.env.ADMIN_USERNAME;
     const passwordHash = process.env.ADMIN_PASSWORD_HASH;
@@ -133,26 +117,23 @@ app.post('/api/admin/login', loginLimiter, validate(loginSchema), async (req, re
       });
     }
 
-    // Strictly compare username to process.env.ADMIN_USERNAME
-    if (username !== expectedUsername) {
+    const isUsernameMatch = username === expectedUsername;
+    // Mitigate username timing enumeration: always execute bcrypt.compare
+    // If username does not match, compare against static dummy bcrypt hash
+    const hashToCompare = isUsernameMatch ? passwordHash : DUMMY_PASSWORD_HASH;
+    const isPasswordValid = await bcrypt.compare(password, hashToCompare);
+
+    if (!isUsernameMatch || !isPasswordValid) {
       return res.status(401).json({
-        error: 'Invalid username or password',
+        error: 'Invalid credentials',
       });
     }
 
-    // Use bcrypt.compare to verify password against process.env.ADMIN_PASSWORD_HASH
-    const isPasswordValid = await bcrypt.compare(password, passwordHash);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        error: 'Invalid username or password',
-      });
-    }
-
-    // On success, return a signed JWT expiring in 24 hours
+    // On success, return a signed JWT expiring in 24 hours with explicit HS256 algorithm
     const token = jwt.sign(
       { username: expectedUsername, role: 'admin' },
       jwtSecret,
-      { expiresIn: '24h' }
+      { expiresIn: '24h', algorithm: 'HS256' }
     );
 
     res.json({
@@ -189,19 +170,9 @@ app.get('/api/admin/pending', authMiddleware, async (req, res) => {
 // 5. PATCH /api/admin/routes/:id/status: Update a route's status to 'APPROVED' or 'REJECTED' (Protected)
 app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusSchema), async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const routeId = parseInt(id, 10);
-    if (isNaN(routeId)) {
-      return res.status(400).json({ error: 'Invalid route ID' });
-    }
-
-    if (!status || !['APPROVED', 'REJECTED'].includes(status.toUpperCase())) {
-      return res.status(400).json({
-        error: 'Status must be either "APPROVED" or "REJECTED"',
-      });
-    }
+    // Strictly extract validated variables from Zod
+    const routeId = req.validatedParams?.id ?? (req.params?.id ? parseInt(req.params.id, 10) : undefined);
+    const { status } = req.validatedBody || req.body;
 
     const existingRoute = await prisma.route.findUnique({
       where: { id: routeId },
@@ -211,10 +182,11 @@ app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusS
       return res.status(404).json({ error: 'Route not found' });
     }
 
+    // Update route using strictly validated status
     const updatedRoute = await prisma.route.update({
       where: { id: routeId },
       data: {
-        status: status.toUpperCase(),
+        status,
       },
       include: {
         origin: true,
