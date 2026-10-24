@@ -7,12 +7,40 @@ export default function AdminDashboard({ onBackToMap }) {
   const [error, setError] = useState(null);
   const [actionInProgress, setActionInProgress] = useState({});
   const [toast, setToast] = useState(null);
+  const [editState, setEditState] = useState({}); // { [routeId]: { destinationName: string, fare: number|string } }
 
   const showToast = (message, type = 'success') => {
     setToast(message ? { message, type } : null);
     if (message) {
       setTimeout(() => setToast(null), 3000);
     }
+  };
+
+  const toggleEdit = (route) => {
+    setEditState((prev) => {
+      if (prev[route.id]) {
+        const copy = { ...prev };
+        delete copy[route.id];
+        return copy;
+      }
+      return {
+        ...prev,
+        [route.id]: {
+          destinationName: route.destinationName,
+          fare: route.fare,
+        },
+      };
+    });
+  };
+
+  const handleEditChange = (routeId, field, value) => {
+    setEditState((prev) => ({
+      ...prev,
+      [routeId]: {
+        ...prev[routeId],
+        [field]: value,
+      },
+    }));
   };
 
   const fetchPendingRoutes = async () => {
@@ -38,15 +66,44 @@ export default function AdminDashboard({ onBackToMap }) {
     const targetRoute = pendingRoutes.find((r) => r.id === routeId);
     if (!targetRoute) return;
 
+    const editedValues = editState[routeId];
+    let payload = { status: newStatus };
+    let finalDestination = targetRoute.destinationName;
+
+    if (newStatus === 'APPROVED' && editedValues) {
+      const trimmedDest = editedValues.destinationName !== undefined ? editedValues.destinationName.trim() : targetRoute.destinationName;
+      const parsedFare = editedValues.fare !== undefined ? parseFloat(editedValues.fare) : targetRoute.fare;
+
+      if (!trimmedDest || trimmedDest.length < 2 || trimmedDest.length > 80) {
+        showToast('Destination name must be between 2 and 80 characters.', 'error');
+        return;
+      }
+
+      if (isNaN(parsedFare) || parsedFare <= 0 || parsedFare > 1000) {
+        showToast('Fare must be a positive number up to 1000 Birr.', 'error');
+        return;
+      }
+
+      payload.destinationName = trimmedDest;
+      payload.fare = parsedFare;
+      finalDestination = trimmedDest;
+    }
+
     // Optimistically remove from state
     setPendingRoutes((prev) => prev.filter((r) => r.id !== routeId));
     setActionInProgress((prev) => ({ ...prev, [routeId]: newStatus }));
 
     try {
-      await updateRouteStatus(routeId, newStatus);
+      await updateRouteStatus(routeId, payload);
+
+      setEditState((prev) => {
+        const copy = { ...prev };
+        delete copy[routeId];
+        return copy;
+      });
 
       showToast(
-        `Route to "${targetRoute.destinationName}" ${
+        `Route to "${finalDestination}" ${
           newStatus === 'APPROVED' ? 'Approved' : 'Rejected'
         }`,
         newStatus === 'APPROVED' ? 'success' : 'info'
@@ -242,54 +299,118 @@ export default function AdminDashboard({ onBackToMap }) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-mengede-dark text-[14px]">
-                      {pendingRoutes.map((route, idx) => (
-                        <tr
-                          key={route.id}
-                          className={`hover:bg-[#EEFCFA]/70 transition-colors duration-150 ${
-                            idx % 2 === 1 ? 'bg-[#F9FCFB]' : 'bg-white'
-                          }`}
-                        >
-                          <td className="py-4 px-5 text-gray-400 font-mono text-[13px]">
-                            #{route.id}
-                          </td>
-                          <td className="py-4 px-5 font-semibold text-mengede-primary">
-                            {route.origin?.name || `Terminal #${route.originId}`}
-                          </td>
-                          <td className="py-4 px-5 font-medium text-mengede-dark">
-                            {route.destinationName}
-                          </td>
-                          <td className="py-4 px-5 font-bold text-mengede-dark">
-                            {route.fare} Birr
-                          </td>
-                          <td className="py-4 px-5 text-right">
-                            <div className="inline-flex items-center gap-2 justify-end">
-                              <button
-                                type="button"
-                                disabled={actionInProgress[route.id]}
-                                onClick={() => handleModeration(route.id, 'APPROVED')}
-                                className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-mengede-primary hover:bg-[#236e4f] text-white text-[12px] font-semibold active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">
-                                  check
-                                </span>
-                                <span>Approve</span>
-                              </button>
+                      {pendingRoutes.map((route, idx) => {
+                        const isEditing = !!editState[route.id];
+                        return (
+                          <tr
+                            key={route.id}
+                            className={`hover:bg-[#EEFCFA]/70 transition-colors duration-150 ${
+                              isEditing
+                                ? 'bg-amber-50/50'
+                                : idx % 2 === 1
+                                ? 'bg-[#F9FCFB]'
+                                : 'bg-white'
+                            }`}
+                          >
+                            <td className="py-4 px-5 text-gray-400 font-mono text-[13px]">
+                              #{route.id}
+                            </td>
+                            <td className="py-4 px-5 font-semibold text-mengede-primary">
+                              {route.origin?.name || `Terminal #${route.originId}`}
+                            </td>
+                            <td className="py-4 px-5 font-medium text-mengede-dark">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={editState[route.id]?.destinationName ?? route.destinationName}
+                                  onChange={(e) =>
+                                    handleEditChange(route.id, 'destinationName', e.target.value)
+                                  }
+                                  placeholder="Destination name"
+                                  required
+                                  minLength={2}
+                                  maxLength={80}
+                                  className="w-full min-w-[150px] px-3 py-1.5 bg-white border border-mengede-sage rounded-xl text-[13px] text-mengede-dark focus:outline-none focus:ring-2 focus:ring-mengede-primary shadow-xs transition"
+                                />
+                              ) : (
+                                route.destinationName
+                              )}
+                            </td>
+                            <td className="py-4 px-5 font-bold text-mengede-dark">
+                              {isEditing ? (
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    value={editState[route.id]?.fare ?? route.fare}
+                                    onChange={(e) =>
+                                      handleEditChange(route.id, 'fare', e.target.value)
+                                    }
+                                    placeholder="Fare"
+                                    required
+                                    min="0.01"
+                                    max="1000"
+                                    step="any"
+                                    className="w-20 px-2.5 py-1.5 bg-white border border-mengede-sage rounded-xl text-[13px] text-mengede-dark focus:outline-none focus:ring-2 focus:ring-mengede-primary shadow-xs transition font-bold"
+                                  />
+                                  <span className="text-[12px] font-semibold text-gray-500">
+                                    Birr
+                                  </span>
+                                </div>
+                              ) : (
+                                `${route.fare} Birr`
+                              )}
+                            </td>
+                            <td className="py-4 px-5 text-right">
+                              <div className="inline-flex items-center gap-2 justify-end">
+                                {/* Edit Action Button */}
+                                <button
+                                  type="button"
+                                  disabled={actionInProgress[route.id]}
+                                  onClick={() => toggleEdit(route)}
+                                  title={isEditing ? 'Cancel Edit' : 'Edit Route'}
+                                  aria-label={isEditing ? 'Cancel Edit' : 'Edit Route'}
+                                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-50 ${
+                                    isEditing
+                                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                      : 'bg-white hover:bg-gray-100 text-mengede-dark border border-gray-300'
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">
+                                    {isEditing ? 'close' : 'edit'}
+                                  </span>
+                                  <span>{isEditing ? 'Cancel' : 'Edit'}</span>
+                                </button>
 
-                              <button
-                                type="button"
-                                disabled={actionInProgress[route.id]}
-                                onClick={() => handleModeration(route.id, 'REJECTED')}
-                                className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-gray-500 hover:bg-gray-600 text-white text-[12px] font-semibold active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">
-                                  close
-                                </span>
-                                <span>Reject</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                {/* Approve Button */}
+                                <button
+                                  type="button"
+                                  disabled={actionInProgress[route.id]}
+                                  onClick={() => handleModeration(route.id, 'APPROVED')}
+                                  className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-mengede-primary hover:bg-[#236e4f] text-white text-[12px] font-semibold active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">
+                                    check
+                                  </span>
+                                  <span>Approve</span>
+                                </button>
+
+                                {/* Reject Button */}
+                                <button
+                                  type="button"
+                                  disabled={actionInProgress[route.id]}
+                                  onClick={() => handleModeration(route.id, 'REJECTED')}
+                                  className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-gray-500 hover:bg-gray-600 text-white text-[12px] font-semibold active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">
+                                    close
+                                  </span>
+                                  <span>Reject</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

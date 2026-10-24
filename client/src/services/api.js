@@ -89,11 +89,17 @@ export const submitRoute = (routeData) =>
 
 export const fetchPendingRoutes = () => apiFetch('/api/admin/pending');
 
-export const updateRouteStatus = (routeId, status) =>
-  apiFetch(`/api/admin/routes/${routeId}/status`, {
+export const updateRouteStatus = (routeId, statusOrPayload, extraData = {}) => {
+  const body =
+    typeof statusOrPayload === 'object' && statusOrPayload !== null
+      ? statusOrPayload
+      : { status: statusOrPayload, ...extraData };
+
+  return apiFetch(`/api/admin/routes/${routeId}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(body),
   });
+};
 
 export const adminLogin = (credentials) =>
   apiFetch('/api/admin/login', {
