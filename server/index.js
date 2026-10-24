@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
 });
 
 // 1. GET /api/terminals: Fetch all terminals including associated APPROVED routes
-app.get('/api/terminals', async (req, res) => {
+app.get('/api/terminals', async (req, res, next) => {
   try {
     const terminals = await prisma.terminal.findMany({
       include: {
@@ -61,13 +61,12 @@ app.get('/api/terminals', async (req, res) => {
     });
     res.json(terminals);
   } catch (error) {
-    console.error('Error fetching terminals:', error);
-    res.status(500).json({ error: 'Failed to fetch terminals' });
+    next(error);
   }
 });
 
 // 2. POST /api/routes: Submit a new route (originId, destinationName, fare) defaulting to PENDING
-app.post('/api/routes', submissionLimiter, validate(createRouteSchema), async (req, res) => {
+app.post('/api/routes', submissionLimiter, validate(createRouteSchema), async (req, res, next) => {
   try {
     // Strictly extract validated variables from Zod
     const { originId, destinationName, fare } = req.validatedBody || req.body;
@@ -96,13 +95,12 @@ app.post('/api/routes', submissionLimiter, validate(createRouteSchema), async (r
 
     res.status(201).json(newRoute);
   } catch (error) {
-    console.error('Error creating route:', error);
-    res.status(500).json({ error: 'Failed to create route' });
+    next(error);
   }
 });
 
 // 3. POST /api/admin/login: Authenticate admin and return a signed 24h JWT
-app.post('/api/admin/login', loginLimiter, validate(loginSchema), async (req, res) => {
+app.post('/api/admin/login', loginLimiter, validate(loginSchema), async (req, res, next) => {
   try {
     const { username, password } = req.validatedBody || req.body;
 
@@ -141,13 +139,12 @@ app.post('/api/admin/login', loginLimiter, validate(loginSchema), async (req, re
       token,
     });
   } catch (error) {
-    console.error('Error during admin login:', error);
-    res.status(500).json({ error: 'Internal server error during login' });
+    next(error);
   }
 });
 
 // 4. GET /api/admin/pending: Fetch all routes with status PENDING (Protected)
-app.get('/api/admin/pending', authMiddleware, async (req, res) => {
+app.get('/api/admin/pending', authMiddleware, async (req, res, next) => {
   try {
     const pendingRoutes = await prisma.route.findMany({
       where: {
@@ -162,13 +159,12 @@ app.get('/api/admin/pending', authMiddleware, async (req, res) => {
     });
     res.json(pendingRoutes);
   } catch (error) {
-    console.error('Error fetching pending routes:', error);
-    res.status(500).json({ error: 'Failed to fetch pending routes' });
+    next(error);
   }
 });
 
 // 5. PATCH /api/admin/routes/:id/status: Update a route's status to 'APPROVED' or 'REJECTED' (Protected)
-app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusSchema), async (req, res) => {
+app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusSchema), async (req, res, next) => {
   try {
     // Strictly extract validated variables from Zod
     const routeId = req.validatedParams?.id ?? (req.params?.id ? parseInt(req.params.id, 10) : undefined);
@@ -195,9 +191,32 @@ app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusS
 
     res.json(updatedRoute);
   } catch (error) {
-    console.error('Error updating route status:', error);
-    res.status(500).json({ error: 'Failed to update route status' });
+    next(error);
   }
+});
+
+// Centralized Express error-handling middleware at the bottom of the middleware stack
+app.use((err, req, res, next) => {
+  // Log the full error internally
+  console.error('Unhandled server error:', err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  // Preserve explicit client errors (4xx) if set
+  const statusCode = err.status || err.statusCode;
+  if (statusCode && statusCode >= 400 && statusCode < 500) {
+    return res.status(statusCode).json({
+      error: err.message || 'Client error',
+    });
+  }
+
+  // Ensure any unhandled or Prisma database errors return a generic 500 response
+  // so database table names, constraint details, and stack traces are never exposed
+  return res.status(500).json({
+    error: 'An unexpected server error occurred',
+  });
 });
 
 // Start the server if this file is run directly
