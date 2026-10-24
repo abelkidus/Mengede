@@ -17,14 +17,15 @@ export default function SubmitRouteForm({
     if (e) e.preventDefault();
     setError(null);
 
-    if (!destinationName.trim()) {
-      setError('Please enter a destination name.');
+    const trimmedDest = destinationName.trim();
+    if (!trimmedDest || trimmedDest.length < 2 || trimmedDest.length > 80) {
+      setError('Destination name must be between 2 and 80 characters.');
       return;
     }
 
     const parsedFare = parseFloat(fare);
-    if (isNaN(parsedFare) || parsedFare <= 0) {
-      setError('Please enter a valid fare greater than 0.');
+    if (isNaN(parsedFare) || parsedFare <= 0 || parsedFare > 1000) {
+      setError('Fare must be a positive number up to 1000 Birr.');
       return;
     }
 
@@ -37,7 +38,7 @@ export default function SubmitRouteForm({
       setSubmitting(true);
       const data = await submitRoute({
         originId: terminal.id,
-        destinationName: destinationName.trim(),
+        destinationName: trimmedDest,
         fare: parsedFare,
       });
 
@@ -49,7 +50,25 @@ export default function SubmitRouteForm({
       }, 1500);
     } catch (err) {
       console.error('Submission error:', err);
-      setError(err.message || 'An error occurred while submitting.');
+      let errorMsg = err.message;
+      if (err.status === 429) {
+        errorMsg =
+          err.data?.error ||
+          err.message ||
+          'Too many route submissions. Please try again in an hour.';
+      } else if (err.status === 400) {
+        if (err.data?.fieldErrors || err.data?.details) {
+          const fieldObj = err.data.fieldErrors || err.data.details;
+          const messages = Object.entries(fieldObj)
+            .map(([_, msgs]) => (Array.isArray(msgs) ? msgs.join(', ') : msgs))
+            .filter(Boolean)
+            .join('. ');
+          if (messages) errorMsg = messages;
+        } else if (err.data?.error) {
+          errorMsg = err.data.error;
+        }
+      }
+      setError(errorMsg || 'An error occurred while submitting.');
     } finally {
       setSubmitting(false);
     }
@@ -117,14 +136,16 @@ export default function SubmitRouteForm({
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-[13px] flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
-              <span>{error}</span>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-[13px] flex items-start gap-2.5 animate-fade-in">
+              <span className="material-symbols-outlined text-[18px] text-red-500 shrink-0 mt-0.5">
+                error
+              </span>
+              <div className="flex-1 font-medium leading-relaxed">{error}</div>
             </div>
           )}
 
           {/* Form Elements */}
-          <form className="flex flex-col space-y-5" onSubmit={handleSubmit}>
+          <form id="route-submit-form" className="flex flex-col space-y-5" onSubmit={handleSubmit}>
             {/* Form Field 1: Destination */}
             <div className="flex flex-col space-y-1.5">
               <label
@@ -140,6 +161,9 @@ export default function SubmitRouteForm({
                 value={destinationName}
                 onChange={(e) => setDestinationName(e.target.value)}
                 placeholder="e.g. Bole Medhanialem"
+                required
+                minLength={2}
+                maxLength={80}
                 disabled={submitting}
                 className="w-full px-4 py-3 rounded-2xl border border-mengede-sage bg-white text-mengede-dark placeholder-mengede-sage/80 focus:outline-none focus:ring-2 focus:ring-mengede-primary focus:border-transparent transition text-base"
               />
@@ -157,7 +181,9 @@ export default function SubmitRouteForm({
                 value={fare}
                 onChange={(e) => setFare(e.target.value)}
                 placeholder="e.g. 15"
-                min="0"
+                required
+                min="0.01"
+                max="1000"
                 step="any"
                 disabled={submitting}
                 className="w-full px-4 py-3 rounded-2xl border border-mengede-sage bg-white text-mengede-dark placeholder-mengede-sage/80 focus:outline-none focus:ring-2 focus:ring-mengede-primary focus:border-transparent transition text-base"
@@ -186,8 +212,8 @@ export default function SubmitRouteForm({
         {/* Footer Action */}
         <div className="pt-5 pb-1">
           <button
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
+            form="route-submit-form"
             disabled={submitting}
             className={`w-full py-4 rounded-2xl bg-mengede-primary hover:bg-[#236e4f] text-white font-semibold text-base shadow-md transition active:scale-[0.99] text-center flex items-center justify-center gap-2 cursor-pointer ${
               submitting ? 'opacity-70 cursor-not-allowed' : ''

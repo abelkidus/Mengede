@@ -36,11 +36,39 @@ export async function apiFetch(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    const message =
+    // If an authenticated admin request returns 401 or 403 (excluding /api/admin/login),
+    // automatically clear the adminToken and redirect to /admin/login
+    const isLoginEndpoint = typeof endpoint === 'string' && endpoint.includes('/api/admin/login');
+    if ((response.status === 401 || response.status === 403) && !isLoginEndpoint) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('adminToken');
+        if (window.location.pathname !== '/admin/login') {
+          window.location.href = '/admin/login';
+        }
+      }
+    }
+
+    let message =
       (data && typeof data === 'object' && (data.error || data.message)) ||
       (typeof data === 'string' && data) ||
       response.statusText ||
       `Request failed with status ${response.status}`;
+
+    // Surface field validation messages for 400 Bad Request if available
+    if (response.status === 400 && data && typeof data === 'object') {
+      const fieldErrorsObj = data.fieldErrors || data.details;
+      if (fieldErrorsObj && typeof fieldErrorsObj === 'object') {
+        const errorList = Object.entries(fieldErrorsObj)
+          .map(([field, msgs]) => (Array.isArray(msgs) ? msgs.join(', ') : msgs))
+          .filter(Boolean);
+        if (errorList.length > 0) {
+          message = errorList.join('. ');
+        }
+      } else if (Array.isArray(data.errors) && data.errors.length > 0) {
+        message = data.errors.map((e) => e.message || e).join('. ');
+      }
+    }
+
     const error = new Error(message);
     error.status = response.status;
     error.data = data;

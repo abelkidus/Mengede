@@ -19,15 +19,26 @@ export default function AdminLogin() {
     e.preventDefault();
     setError(null);
 
-    if (!username.trim() || !password) {
+    const trimmedUser = username.trim();
+    if (!trimmedUser || !password) {
       setError('Please provide both username and password.');
+      return;
+    }
+
+    if (trimmedUser.length > 50) {
+      setError('Username must not exceed 50 characters.');
+      return;
+    }
+
+    if (password.length > 128) {
+      setError('Password must not exceed 128 characters.');
       return;
     }
 
     try {
       setLoading(true);
       const data = await adminLogin({
-        username: username.trim(),
+        username: trimmedUser,
         password,
       });
 
@@ -39,7 +50,25 @@ export default function AdminLogin() {
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.message || 'Authentication failed. Please verify your credentials.');
+      let errorMsg = err.message;
+      if (err.status === 429) {
+        errorMsg =
+          err.data?.error ||
+          err.message ||
+          'Too many login attempts. Please try again in 15 minutes.';
+      } else if (err.status === 400) {
+        if (err.data?.fieldErrors || err.data?.details) {
+          const fieldObj = err.data.fieldErrors || err.data.details;
+          const messages = Object.entries(fieldObj)
+            .map(([_, msgs]) => (Array.isArray(msgs) ? msgs.join(', ') : msgs))
+            .filter(Boolean)
+            .join('. ');
+          if (messages) errorMsg = messages;
+        } else if (err.data?.error) {
+          errorMsg = err.data.error;
+        }
+      }
+      setError(errorMsg || 'Authentication failed. Please verify your credentials.');
     } finally {
       setLoading(false);
     }
@@ -72,7 +101,7 @@ export default function AdminLogin() {
             <span className="material-symbols-outlined text-[18px] text-red-500 shrink-0 mt-0.5">
               error
             </span>
-            <div className="flex-1 font-medium leading-tight">{error}</div>
+            <div className="flex-1 font-medium leading-relaxed">{error}</div>
           </div>
         )}
 
@@ -96,6 +125,7 @@ export default function AdminLogin() {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter admin username"
                 required
+                maxLength={50}
                 autoComplete="username"
                 className="w-full pl-11 pr-4 py-3 bg-mengede-surface/60 border border-mengede-sage/40 rounded-xl text-[14px] text-mengede-dark placeholder-mengede-dark/40 outline-none focus:border-mengede-primary focus:ring-2 focus:ring-mengede-primary/20 transition-all"
               />
@@ -120,6 +150,7 @@ export default function AdminLogin() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
                 required
+                maxLength={128}
                 autoComplete="current-password"
                 className="w-full pl-11 pr-11 py-3 bg-mengede-surface/60 border border-mengede-sage/40 rounded-xl text-[14px] text-mengede-dark placeholder-mengede-dark/40 outline-none focus:border-mengede-primary focus:ring-2 focus:ring-mengede-primary/20 transition-all"
               />
