@@ -107,6 +107,23 @@ export const adminLogin = (credentials) =>
     body: JSON.stringify(credentials),
   });
 
+export const createTerminal = (terminalData) =>
+  apiFetch('/api/admin/terminals', {
+    method: 'POST',
+    body: JSON.stringify(terminalData),
+  });
+
+export const updateTerminal = (terminalId, terminalData) =>
+  apiFetch(`/api/admin/terminals/${terminalId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(terminalData),
+  });
+
+export const deleteTerminal = (terminalId) =>
+  apiFetch(`/api/admin/terminals/${terminalId}`, {
+    method: 'DELETE',
+  });
+
 export const api = {
   fetch: apiFetch,
   fetchTerminals,
@@ -114,6 +131,9 @@ export const api = {
   fetchPendingRoutes,
   updateRouteStatus,
   adminLogin,
+  createTerminal,
+  updateTerminal,
+  deleteTerminal,
 };
 
 export default api;
