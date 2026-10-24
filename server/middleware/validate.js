@@ -18,6 +18,29 @@ const loginSchema = z.object({
 });
 
 /**
+ * Reusable field schemas
+ */
+const destinationNameSchema = z
+  .string({ required_error: 'Destination name is required' })
+  .trim()
+  .transform((val) => val.replace(/[<>]/g, '').trim())
+  .pipe(
+    z
+      .string()
+      .min(2, 'Destination name must be between 2 and 80 characters')
+      .max(80, 'Destination name must be between 2 and 80 characters')
+      .regex(
+        /^[a-zA-Z0-9\s\-()]+$/,
+        'Destination name can only contain alphanumeric characters, spaces, hyphens, and parentheses'
+      )
+  );
+
+const fareSchema = z.coerce
+  .number({ required_error: 'Fare is required' })
+  .positive('Fare must be a positive number')
+  .max(1000, 'Fare cannot exceed 1000');
+
+/**
  * 2. createRouteSchema:
  * - originId: coerced positive integer
  * - destinationName: trimmed string, 2 to 80 chars, sanitized with a regex transform
@@ -30,30 +53,16 @@ const createRouteSchema = z.object({
     .number({ required_error: 'Origin terminal ID is required' })
     .int('Origin terminal ID must be an integer')
     .positive('Origin terminal ID must be a positive integer'),
-  destinationName: z
-    .string({ required_error: 'Destination name is required' })
-    .trim()
-    .transform((val) => val.replace(/[<>]/g, '').trim())
-    .pipe(
-      z
-        .string()
-        .min(2, 'Destination name must be between 2 and 80 characters')
-        .max(80, 'Destination name must be between 2 and 80 characters')
-        .regex(
-          /^[a-zA-Z0-9\s\-()]+$/,
-          'Destination name can only contain alphanumeric characters, spaces, hyphens, and parentheses'
-        )
-    ),
-  fare: z.coerce
-    .number({ required_error: 'Fare is required' })
-    .positive('Fare must be a positive number')
-    .max(1000, 'Fare cannot exceed 1000'),
+  destinationName: destinationNameSchema,
+  fare: fareSchema,
 });
 
 /**
  * 3. updateStatusSchema:
  * - req.params.id: coerced positive integer
  * - req.body.status: strictly z.enum(['APPROVED', 'REJECTED'])
+ * - req.body.destinationName: optional sanitized string (2-80 chars)
+ * - req.body.fare: optional coerced positive number (<= 1000)
  */
 const baseUpdateStatusSchema = z.object({
   params: z.object({
@@ -66,15 +75,21 @@ const baseUpdateStatusSchema = z.object({
     status: z.enum(['APPROVED', 'REJECTED'], {
       message: "Status must be either 'APPROVED' or 'REJECTED'",
     }),
+    destinationName: destinationNameSchema.optional(),
+    fare: fareSchema.optional(),
   }),
 });
 
-// Preprocess allows validating either structured request ({ params, body }) or flat object ({ id, status })
+// Preprocess allows validating either structured request ({ params, body }) or flat object ({ id, status, destinationName, fare })
 const updateStatusSchema = z.preprocess((input) => {
   if (input && typeof input === 'object' && !('params' in input) && !('body' in input)) {
+    const { id, status, destinationName, fare } = input;
+    const body = { status };
+    if (destinationName !== undefined) body.destinationName = destinationName;
+    if (fare !== undefined) body.fare = fare;
     return {
-      params: { id: input.id },
-      body: { status: input.status },
+      params: { id },
+      body,
     };
   }
   return input;

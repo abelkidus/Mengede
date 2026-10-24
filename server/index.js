@@ -168,7 +168,7 @@ app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusS
   try {
     // Strictly extract validated variables from Zod
     const routeId = req.validatedParams?.id ?? (req.params?.id ? parseInt(req.params.id, 10) : undefined);
-    const { status } = req.validatedBody || req.body;
+    const { status, destinationName, fare } = req.validatedBody || req.body;
 
     const existingRoute = await prisma.route.findUnique({
       where: { id: routeId },
@@ -178,12 +178,19 @@ app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusS
       return res.status(404).json({ error: 'Route not found' });
     }
 
-    // Update route using strictly validated status
+    // Build update payload using strictly validated variables
+    const updateData = { status };
+    if (destinationName !== undefined) {
+      updateData.destinationName = destinationName;
+    }
+    if (fare !== undefined) {
+      updateData.fare = fare;
+    }
+
+    // Update route using strictly validated variables
     const updatedRoute = await prisma.route.update({
       where: { id: routeId },
-      data: {
-        status,
-      },
+      data: updateData,
       include: {
         origin: true,
       },
