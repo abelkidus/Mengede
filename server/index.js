@@ -11,6 +11,12 @@ const {
   loginLimiter,
   submissionLimiter,
 } = require('./middleware/rateLimiters');
+const {
+  validate,
+  loginSchema,
+  createRouteSchema,
+  updateStatusSchema,
+} = require('./middleware/validate');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -58,7 +64,7 @@ app.get('/api/terminals', async (req, res) => {
 });
 
 // 2. POST /api/routes: Submit a new route (originId, destinationName, fare) defaulting to PENDING
-app.post('/api/routes', submissionLimiter, async (req, res) => {
+app.post('/api/routes', submissionLimiter, validate(createRouteSchema), async (req, res) => {
   try {
     const { originId, destinationName, fare } = req.body;
 
@@ -106,7 +112,7 @@ app.post('/api/routes', submissionLimiter, async (req, res) => {
 });
 
 // 3. POST /api/admin/login: Authenticate admin and return a signed 24h JWT
-app.post('/api/admin/login', loginLimiter, async (req, res) => {
+app.post('/api/admin/login', loginLimiter, validate(loginSchema), async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -181,7 +187,7 @@ app.get('/api/admin/pending', authMiddleware, async (req, res) => {
 });
 
 // 5. PATCH /api/admin/routes/:id/status: Update a route's status to 'APPROVED' or 'REJECTED' (Protected)
-app.patch('/api/admin/routes/:id/status', authMiddleware, async (req, res) => {
+app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusSchema), async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
