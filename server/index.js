@@ -6,6 +6,11 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const authMiddleware = require('./middleware/authMiddleware');
+const {
+  globalLimiter,
+  loginLimiter,
+  submissionLimiter,
+} = require('./middleware/rateLimiters');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -21,6 +26,9 @@ app.use(
   })
 );
 app.use(express.json({ limit: '10kb' }));
+
+// 1. Global rate limiter for all /api endpoints
+app.use('/api', globalLimiter);
 
 // Basic health check route
 app.get('/', (req, res) => {
@@ -50,7 +58,7 @@ app.get('/api/terminals', async (req, res) => {
 });
 
 // 2. POST /api/routes: Submit a new route (originId, destinationName, fare) defaulting to PENDING
-app.post('/api/routes', async (req, res) => {
+app.post('/api/routes', submissionLimiter, async (req, res) => {
   try {
     const { originId, destinationName, fare } = req.body;
 
@@ -98,7 +106,7 @@ app.post('/api/routes', async (req, res) => {
 });
 
 // 3. POST /api/admin/login: Authenticate admin and return a signed 24h JWT
-app.post('/api/admin/login', async (req, res) => {
+app.post('/api/admin/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 
