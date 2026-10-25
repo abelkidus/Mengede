@@ -167,7 +167,29 @@ app.get('/api/admin/pending', authMiddleware, async (req, res, next) => {
   }
 });
 
-// 5. PATCH /api/admin/routes/bulk: Bulk update route statuses (Protected)
+// 5. GET /api/admin/history: Fetch all routes with status APPROVED or REJECTED ordered by updatedAt descending (Protected)
+app.get('/api/admin/history', authMiddleware, async (req, res, next) => {
+  try {
+    const history = await prisma.route.findMany({
+      where: {
+        status: {
+          in: ['APPROVED', 'REJECTED'],
+        },
+      },
+      include: {
+        origin: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+    res.json(history);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 6. PATCH /api/admin/routes/bulk: Bulk update route statuses (Protected)
 app.patch('/api/admin/routes/bulk', authMiddleware, validate(bulkUpdateRouteStatusSchema), async (req, res, next) => {
   try {
     const { ids, status } = req.validatedBody || req.body;

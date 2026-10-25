@@ -130,11 +130,14 @@ export const bulkUpdateRouteStatus = (ids, status) =>
     body: JSON.stringify({ ids, status }),
   });
 
+export const fetchActionHistory = () => apiFetch('/api/admin/history');
+
 export const api = {
   fetch: apiFetch,
   fetchTerminals,
   submitRoute,
   fetchPendingRoutes,
+  fetchActionHistory,
   updateRouteStatus,
   bulkUpdateRouteStatus,
   adminLogin,

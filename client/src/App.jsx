@@ -5,6 +5,7 @@ import TerminalModal from './components/TerminalModal';
 import SubmitRouteForm from './components/SubmitRouteForm';
 import AdminDashboard from './components/AdminDashboard';
 import TerminalsOverview from './components/TerminalsOverview';
+import ActionHistory from './components/ActionHistory';
 import AdminLayout from './components/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLogin from './components/AdminLogin';
@@ -97,6 +98,7 @@ function App() {
         >
           <Route index element={<AdminDashboard />} />
           <Route path="terminals" element={<TerminalsOverview />} />
+          <Route path="history" element={<ActionHistory />} />
         </Route>
 
         {/* Catch-all redirect for 404s back to root */}
