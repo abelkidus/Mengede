@@ -25,5 +25,6 @@ model Route {
   destinationName String
   fare            Float
   status          String   @default("PENDING")
+  updatedAt       DateTime @updatedAt
   origin          Terminal @relation(fields: [originId], references: [id])
 }

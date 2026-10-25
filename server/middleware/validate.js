@@ -101,6 +101,26 @@ updateStatusSchema.params = baseUpdateStatusSchema.shape.params;
 updateStatusSchema.body = baseUpdateStatusSchema.shape.body;
 
 /**
+ * bulkUpdateRouteStatusSchema:
+ * - ids: array of numbers (coerced positive integers, at least 1 item)
+ * - status: strictly z.enum(['APPROVED', 'REJECTED'])
+ */
+const bulkUpdateRouteStatusSchema = z.object({
+  ids: z
+    .array(
+      z.coerce
+        .number({ required_error: 'Route ID must be a number' })
+        .int('Route ID must be an integer')
+        .positive('Route ID must be a positive integer'),
+      { required_error: 'Array of route IDs is required' }
+    )
+    .min(1, 'At least one route ID must be provided'),
+  status: z.enum(['APPROVED', 'REJECTED'], {
+    message: "Status must be either 'APPROVED' or 'REJECTED'",
+  }),
+});
+
+/**
  * Reusable validation middleware:
  * Validates request data against the provided Zod schema.
  * Automatically checks req.body, or structured { params, body, query } if the schema defines them.
@@ -290,6 +310,7 @@ module.exports = {
   loginSchema,
   createRouteSchema,
   updateStatusSchema,
+  bulkUpdateRouteStatusSchema,
   createTerminalSchema,
   updateTerminalSchema,
   deleteTerminalSchema,

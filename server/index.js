@@ -16,6 +16,7 @@ const {
   loginSchema,
   createRouteSchema,
   updateStatusSchema,
+  bulkUpdateRouteStatusSchema,
   createTerminalSchema,
   updateTerminalSchema,
   deleteTerminalSchema,
@@ -166,7 +167,32 @@ app.get('/api/admin/pending', authMiddleware, async (req, res, next) => {
   }
 });
 
-// 5. PATCH /api/admin/routes/:id/status: Update a route's status to 'APPROVED' or 'REJECTED' (Protected)
+// 5. PATCH /api/admin/routes/bulk: Bulk update route statuses (Protected)
+app.patch('/api/admin/routes/bulk', authMiddleware, validate(bulkUpdateRouteStatusSchema), async (req, res, next) => {
+  try {
+    const { ids, status } = req.validatedBody || req.body;
+
+    const result = await prisma.route.updateMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      data: {
+        status,
+      },
+    });
+
+    res.json({
+      message: `Successfully updated ${result.count} route(s) to ${status}`,
+      count: result.count,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 6. PATCH /api/admin/routes/:id/status: Update a route's status to 'APPROVED' or 'REJECTED' (Protected)
 app.patch('/api/admin/routes/:id/status', authMiddleware, validate(updateStatusSchema), async (req, res, next) => {
   try {
     // Strictly extract validated variables from Zod
