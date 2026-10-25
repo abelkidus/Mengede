@@ -124,12 +124,19 @@ export const deleteTerminal = (terminalId) =>
     method: 'DELETE',
   });
 
+export const bulkUpdateRouteStatus = (ids, status) =>
+  apiFetch('/api/admin/routes/bulk', {
+    method: 'PATCH',
+    body: JSON.stringify({ ids, status }),
+  });
+
 export const api = {
   fetch: apiFetch,
   fetchTerminals,
   submitRoute,
   fetchPendingRoutes,
   updateRouteStatus,
+  bulkUpdateRouteStatus,
   adminLogin,
   createTerminal,
   updateTerminal,

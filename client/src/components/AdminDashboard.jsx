@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { fetchPendingRoutes as apiFetchPendingRoutes, updateRouteStatus } from '../services/api';
+import {
+  fetchPendingRoutes as apiFetchPendingRoutes,
+  updateRouteStatus,
+  bulkUpdateRouteStatus,
+} from '../services/api';
 
 export default function AdminDashboard({ onBackToMap }) {
   const [pendingRoutes, setPendingRoutes] = useState([]);
@@ -8,6 +12,26 @@ export default function AdminDashboard({ onBackToMap }) {
   const [actionInProgress, setActionInProgress] = useState({});
   const [toast, setToast] = useState(null);
   const [editState, setEditState] = useState({}); // { [routeId]: { destinationName: string, fare: number|string } }
+  const [selectedIds, setSelectedIds] = useState([]); // Array of selected route IDs for bulk operations
+  const [bulkActionInProgress, setBulkActionInProgress] = useState(null); // 'APPROVED' | 'REJECTED' | null
+
+  // Selection calculations
+  const isAllSelected = pendingRoutes.length > 0 && selectedIds.length === pendingRoutes.length;
+  const isSomeSelected = selectedIds.length > 0 && selectedIds.length < pendingRoutes.length;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(pendingRoutes.map((r) => r.id));
+    }
+  };
+
+  const toggleSelectRow = (routeId) => {
+    setSelectedIds((prev) =>
+      prev.includes(routeId) ? prev.filter((id) => id !== routeId) : [...prev, routeId]
+    );
+  };
 
   const showToast = (message, type = 'success') => {
     setToast(message ? { message, type } : null);
@@ -61,6 +85,11 @@ export default function AdminDashboard({ onBackToMap }) {
     fetchPendingRoutes();
   }, []);
 
+  // Prune any selected IDs that no longer exist in pendingRoutes
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => pendingRoutes.some((r) => r.id === id)));
+  }, [pendingRoutes]);
+
   const handleModeration = async (routeId, newStatus) => {
     // Keep reference to existing route for rollback if needed
     const targetRoute = pendingRoutes.find((r) => r.id === routeId);
@@ -91,6 +120,7 @@ export default function AdminDashboard({ onBackToMap }) {
 
     // Optimistically remove from state
     setPendingRoutes((prev) => prev.filter((r) => r.id !== routeId));
+    setSelectedIds((prev) => prev.filter((id) => id !== routeId));
     setActionInProgress((prev) => ({ ...prev, [routeId]: newStatus }));
 
     try {
@@ -119,6 +149,44 @@ export default function AdminDashboard({ onBackToMap }) {
         delete copy[routeId];
         return copy;
       });
+    }
+  };
+
+  const handleBulkModeration = async (newStatus) => {
+    if (selectedIds.length === 0 || bulkActionInProgress) return;
+
+    const targetIds = [...selectedIds];
+    const previousRoutes = [...pendingRoutes];
+
+    // Optimistically remove targets from queue
+    setPendingRoutes((prev) => prev.filter((r) => !targetIds.includes(r.id)));
+    setSelectedIds([]);
+    setBulkActionInProgress(newStatus);
+
+    try {
+      const result = await bulkUpdateRouteStatus(targetIds, newStatus);
+
+      // Clean up editState for target IDs
+      setEditState((prev) => {
+        const copy = { ...prev };
+        targetIds.forEach((id) => delete copy[id]);
+        return copy;
+      });
+
+      showToast(
+        `Successfully ${newStatus === 'APPROVED' ? 'approved' : 'rejected'} ${
+          result?.count ?? targetIds.length
+        } ${targetIds.length === 1 ? 'route' : 'routes'}.`,
+        newStatus === 'APPROVED' ? 'success' : 'info'
+      );
+    } catch (err) {
+      console.error('Bulk moderation error:', err);
+      // Rollback optimistic state
+      setPendingRoutes(previousRoutes);
+      setSelectedIds(targetIds);
+      showToast(`Bulk action failed: ${err.message}`, 'error');
+    } finally {
+      setBulkActionInProgress(null);
     }
   };
 
@@ -213,7 +281,7 @@ export default function AdminDashboard({ onBackToMap }) {
         </header>
 
         {/* Dashboard Body */}
-        <main className="flex-1 p-6 lg:p-10 max-w-6xl w-full mx-auto flex flex-col gap-6">
+        <main className="flex-1 p-6 lg:p-10 pb-28 max-w-6xl w-full mx-auto flex flex-col gap-6">
           {/* Page Heading */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -281,6 +349,22 @@ export default function AdminDashboard({ onBackToMap }) {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-mengede-teal text-white">
+                        <th className="py-3.5 px-4 w-12 text-center">
+                          <label className="inline-flex items-center justify-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isAllSelected}
+                              ref={(el) => {
+                                if (el) {
+                                  el.indeterminate = isSomeSelected;
+                                }
+                              }}
+                              onChange={toggleSelectAll}
+                              aria-label="Select all pending routes"
+                              className="w-4 h-4 rounded text-mengede-primary focus:ring-mengede-primary/50 cursor-pointer accent-mengede-primary"
+                            />
+                          </label>
+                        </th>
                         <th className="py-3.5 px-5 text-[13px] font-semibold tracking-wider uppercase">
                           ID
                         </th>
@@ -301,17 +385,31 @@ export default function AdminDashboard({ onBackToMap }) {
                     <tbody className="divide-y divide-gray-100 text-mengede-dark text-[14px]">
                       {pendingRoutes.map((route, idx) => {
                         const isEditing = !!editState[route.id];
+                        const isSelected = selectedIds.includes(route.id);
                         return (
                           <tr
                             key={route.id}
                             className={`hover:bg-[#EEFCFA]/70 transition-colors duration-150 ${
-                              isEditing
+                              isSelected
+                                ? 'bg-[#EBF7F4]'
+                                : isEditing
                                 ? 'bg-amber-50/50'
                                 : idx % 2 === 1
                                 ? 'bg-[#F9FCFB]'
                                 : 'bg-white'
                             }`}
                           >
+                            <td className="py-4 px-4 text-center">
+                              <label className="inline-flex items-center justify-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleSelectRow(route.id)}
+                                  aria-label={`Select route #${route.id}`}
+                                  className="w-4 h-4 rounded text-mengede-primary focus:ring-mengede-primary/50 cursor-pointer accent-mengede-primary"
+                                />
+                              </label>
+                            </td>
                             <td className="py-4 px-5 text-gray-400 font-mono text-[13px]">
                               #{route.id}
                             </td>
@@ -418,6 +516,72 @@ export default function AdminDashboard({ onBackToMap }) {
             )
           )}
         </main>
+
+        {/* Floating Bulk Actions Bar */}
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-out transform ${
+            selectedIds.length > 0
+              ? 'translate-y-0 opacity-100 pointer-events-auto'
+              : 'translate-y-24 opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="bg-mengede-dark/95 backdrop-blur-xl text-white px-5 sm:px-6 py-3.5 rounded-2xl shadow-2xl border border-white/15 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 sm:gap-6 min-w-[320px] sm:min-w-[480px]">
+            {/* Left: count badge & label */}
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-mengede-primary text-white text-[13px] font-bold flex items-center justify-center shadow-xs">
+                {selectedIds.length}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[13px] sm:text-[14px] font-bold leading-tight">
+                  {selectedIds.length} {selectedIds.length === 1 ? 'Route' : 'Routes'} Selected
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="text-white/60 hover:text-white text-[11px] font-medium text-left underline underline-offset-2 transition-colors cursor-pointer"
+                >
+                  Deselect all
+                </button>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-6 w-px bg-white/20 hidden sm:block" />
+
+            {/* Right: action buttons */}
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+              {/* Approve Selected */}
+              <button
+                type="button"
+                disabled={bulkActionInProgress}
+                onClick={() => handleBulkModeration('APPROVED')}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-mengede-primary hover:bg-[#236e4f] text-white text-[13px] font-bold active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {bulkActionInProgress === 'APPROVED' ? 'hourglass_top' : 'check_circle'}
+                </span>
+                <span>
+                  {bulkActionInProgress === 'APPROVED' ? 'Approving...' : 'Approve Selected'}
+                </span>
+              </button>
+
+              {/* Reject Selected */}
+              <button
+                type="button"
+                disabled={bulkActionInProgress}
+                onClick={() => handleBulkModeration('REJECTED')}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[13px] font-bold active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {bulkActionInProgress === 'REJECTED' ? 'hourglass_top' : 'cancel'}
+                </span>
+                <span>
+                  {bulkActionInProgress === 'REJECTED' ? 'Rejecting...' : 'Reject Selected'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
