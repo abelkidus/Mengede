@@ -46,6 +46,12 @@ export default function TerminalMap({
     setInternalActiveRoute(val);
     onSelectActiveRoute?.(val);
   };
+
+  // Route geometry & driving directions state
+  const [routeGeoJSON, setRouteGeoJSON] = useState(null);
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
+  const [routeError, setRouteError] = useState(null);
+  const [routeDetails, setRouteDetails] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
   const mapRef = useRef(null);
@@ -69,45 +75,137 @@ export default function TerminalMap({
     loadTerminals();
   }, []);
 
-  // Match destination terminal if it exists among registered terminals
-  const destinationTerminal = useMemo(() => {
-    if (!activeRouteSelection?.destinationName || !terminals.length) return null;
-    const destName = activeRouteSelection.destinationName.toLowerCase().trim();
-    return terminals.find(
-      (t) =>
-        t.name.toLowerCase().trim() === destName ||
-        t.name.toLowerCase().includes(destName) ||
-        destName.includes(t.name.toLowerCase().trim())
-    );
-  }, [activeRouteSelection, terminals]);
-
-  // GeoJSON Line between origin terminal and destination terminal (if known)
-  const routeLineGeoJson = useMemo(() => {
-    if (!activeRouteSelection || !destinationTerminal) return null;
-    return {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [activeRouteSelection.originLongitude, activeRouteSelection.originLatitude],
-          [destinationTerminal.longitude, destinationTerminal.latitude],
-        ],
-      },
-    };
-  }, [activeRouteSelection, destinationTerminal]);
-
-  // Camera fly-to when activeRouteSelection changes
+  // Fetch Geocoded Destination and Mapbox Driving Directions
   useEffect(() => {
-    if (activeRouteSelection && mapRef.current) {
-      const { originLatitude, originLongitude } = activeRouteSelection;
-      if (originLatitude && originLongitude) {
-        mapRef.current.flyTo({
-          center: [originLongitude, originLatitude],
-          zoom: 14.5,
-          duration: 900,
+    if (!activeRouteSelection) {
+      setRouteGeoJSON(null);
+      setRouteError(null);
+      setIsRouteLoading(false);
+      setRouteDetails(null);
+      return;
+    }
+
+    const {
+      originLatitude,
+      originLongitude,
+      destinationName,
+    } = activeRouteSelection;
+
+    if (!originLatitude || !originLongitude || !destinationName) {
+      setRouteGeoJSON(null);
+      return;
+    }
+
+    let isMounted = true;
+    const abortController = new AbortController();
+
+    async function fetchDrivingRoute() {
+      setIsRouteLoading(true);
+      setRouteError(null);
+
+      try {
+        // 1. Mapbox Geocoding API: fetch destination coordinates with "Addis Ababa" appended
+        const query = encodeURIComponent(`${destinationName.trim()}, Addis Ababa`);
+        const geocodingUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${MAPBOX_TOKEN}&proximity=${originLongitude},${originLatitude}&limit=1`;
+
+        const geoRes = await fetch(geocodingUrl, { signal: abortController.signal });
+        if (!geoRes.ok) {
+          throw new Error(`Geocoding failed with status ${geoRes.status}`);
+        }
+
+        const geoData = await geoRes.json();
+        if (!geoData.features || geoData.features.length === 0) {
+          throw new Error(`Could not find coordinates for "${destinationName}" in Addis Ababa`);
+        }
+
+        const [destLng, destLat] = geoData.features[0].center;
+
+        if (!isMounted) return;
+
+        // 2. Mapbox Directions API (driving profile) between origin and destination
+        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${originLongitude},${originLatitude};${destLng},${destLat}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+
+        const dirRes = await fetch(directionsUrl, { signal: abortController.signal });
+        if (!dirRes.ok) {
+          throw new Error(`Directions failed with status ${dirRes.status}`);
+        }
+
+        const dirData = await dirRes.json();
+        if (!dirData.routes || dirData.routes.length === 0) {
+          throw new Error(`No driving route found to "${destinationName}"`);
+        }
+
+        const primaryRoute = dirData.routes[0];
+
+        if (!isMounted) return;
+
+        const geoJsonFeature = {
+          type: 'Feature',
+          properties: {
+            distance: primaryRoute.distance,
+            duration: primaryRoute.duration,
+            destinationName,
+          },
+          geometry: primaryRoute.geometry,
+        };
+
+        setRouteGeoJSON(geoJsonFeature);
+        setRouteDetails({
+          distanceMeters: primaryRoute.distance,
+          durationSeconds: primaryRoute.duration,
+          destinationCoords: [destLng, destLat],
         });
+
+        // Fit map viewport to show the complete driving route path
+        if (mapRef.current && primaryRoute.geometry?.coordinates?.length > 1) {
+          const coords = primaryRoute.geometry.coordinates;
+          let minLng = coords[0][0];
+          let maxLng = coords[0][0];
+          let minLat = coords[0][1];
+          let maxLat = coords[0][1];
+
+          for (const [lng, lat] of coords) {
+            if (lng < minLng) minLng = lng;
+            if (lng > maxLng) maxLng = lng;
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+          }
+
+          mapRef.current.fitBounds(
+            [
+              [minLng, minLat],
+              [maxLng, maxLat],
+            ],
+            {
+              padding: { top: 130, bottom: 90, left: 70, right: 70 },
+              duration: 1000,
+            }
+          );
+        } else if (mapRef.current) {
+          mapRef.current.flyTo({
+            center: [originLongitude, originLatitude],
+            zoom: 14.5,
+            duration: 800,
+          });
+        }
+      } catch (err) {
+        if (err.name === 'AbortError' || !isMounted) return;
+        console.error('Route calculation error:', err);
+        setRouteError(err.message || 'Unable to calculate driving route');
+        setRouteGeoJSON(null);
+      } finally {
+        if (isMounted) {
+          setIsRouteLoading(false);
+        }
       }
     }
+
+    fetchDrivingRoute();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [activeRouteSelection]);
 
   // Filter terminals dynamically based on searchQuery (case-insensitive: matches terminal name OR approved route destinationName)
@@ -402,16 +500,16 @@ export default function TerminalMap({
         <NavigationControl position="bottom-right" showCompass={true} />
         <GeolocateControl position="bottom-right" trackUserLocation={true} />
 
-        {/* Active Route Path Line between Origin and Destination Terminal */}
-        {routeLineGeoJson && (
-          <Source id="active-route-line" type="geojson" data={routeLineGeoJson}>
+        {/* Driving Route Geometry from Directions API */}
+        {routeGeoJSON && (
+          <Source id="active-route-line" type="geojson" data={routeGeoJSON}>
             <Layer
               id="route-line-casing"
               type="line"
               layout={{ 'line-cap': 'round', 'line-join': 'round' }}
               paint={{
-                'line-color': '#102A24',
-                'line-width': 6,
+                'line-color': '#0B201B',
+                'line-width': 7,
                 'line-opacity': 0.85,
               }}
             />
@@ -421,11 +519,29 @@ export default function TerminalMap({
               layout={{ 'line-cap': 'round', 'line-join': 'round' }}
               paint={{
                 'line-color': '#2A835F',
-                'line-width': 4,
-                'line-dasharray': [2, 2],
+                'line-width': 4.5,
               }}
             />
           </Source>
+        )}
+
+        {/* Destination Marker from Geocoding */}
+        {routeDetails?.destinationCoords && (
+          <Marker
+            latitude={routeDetails.destinationCoords[1]}
+            longitude={routeDetails.destinationCoords[0]}
+            anchor="bottom"
+          >
+            <div className="flex flex-col items-center animate-bounce">
+              <div className="px-2 py-0.5 mb-1 bg-mengede-dark text-white text-[11px] font-bold rounded-lg shadow-md whitespace-nowrap border border-white/20">
+                {activeRouteSelection.destinationName}
+              </div>
+              <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg border-2 border-white ring-2 ring-red-400/40">
+                <span className="material-symbols-outlined text-[18px]">flag</span>
+              </div>
+              <div className="w-2 h-2 bg-red-600 rotate-45 -mt-1 shadow-xs" />
+            </div>
+          </Marker>
         )}
 
         {/* Render Custom HTML Markers for Terminals */}
@@ -531,13 +647,18 @@ export default function TerminalMap({
               <span className="material-symbols-outlined text-[22px]">alt_route</span>
             </div>
             <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2 py-0.5 rounded-full bg-[#E8F7F4] text-mengede-teal text-[10px] font-bold uppercase tracking-wider border border-mengede-sage/30">
-                  Active Route Path
+                  Driving Route
                 </span>
                 {activeRouteSelection.fare && (
                   <span className="text-[12px] font-bold text-mengede-primary">
                     {activeRouteSelection.fare} Birr
+                  </span>
+                )}
+                {routeDetails && !isRouteLoading && (
+                  <span className="text-[11px] font-semibold text-gray-500">
+                    • {(routeDetails.distanceMeters / 1000).toFixed(1)} km (~{Math.ceil(routeDetails.durationSeconds / 60)} min)
                   </span>
                 )}
               </div>
@@ -550,6 +671,19 @@ export default function TerminalMap({
                   {activeRouteSelection.destinationName}
                 </span>
               </div>
+              {/* Route status indicators */}
+              {isRouteLoading && (
+                <div className="flex items-center gap-1.5 text-[11px] text-mengede-teal font-semibold mt-1">
+                  <div className="w-3 h-3 border-2 border-mengede-teal border-t-transparent rounded-full animate-spin" />
+                  <span>Calculating driving route geometry...</span>
+                </div>
+              )}
+              {routeError && (
+                <div className="flex items-center gap-1 text-[11px] text-rose-600 font-semibold mt-1">
+                  <span className="material-symbols-outlined text-[14px]">error</span>
+                  <span>{routeError}</span>
+                </div>
+              )}
             </div>
           </div>
 
