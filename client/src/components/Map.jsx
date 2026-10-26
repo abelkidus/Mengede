@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import Map, { Marker, NavigationControl, GeolocateControl, Popup } from 'react-map-gl/mapbox';
+import Map, { Marker, NavigationControl, GeolocateControl, Popup, Source, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../utils/distance';
 import { fetchTerminals } from '../services/api';
@@ -21,6 +21,8 @@ export default function TerminalMap({
   onOpenAdmin,
   userLocation: propUserLocation,
   onUserLocationChange,
+  activeRouteSelection: propActiveRouteSelection,
+  onSelectActiveRoute,
 }) {
   const [terminals, setTerminals] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +34,17 @@ export default function TerminalMap({
   const setUserLocation = (loc) => {
     setInternalUserLocation(loc);
     onUserLocationChange?.(loc);
+  };
+
+  // Shared active route selection state
+  const [internalActiveRoute, setInternalActiveRoute] = useState(null);
+  const activeRouteSelection =
+    propActiveRouteSelection !== undefined
+      ? propActiveRouteSelection
+      : internalActiveRoute;
+  const setActiveRouteSelection = (val) => {
+    setInternalActiveRoute(val);
+    onSelectActiveRoute?.(val);
   };
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
@@ -55,6 +68,47 @@ export default function TerminalMap({
 
     loadTerminals();
   }, []);
+
+  // Match destination terminal if it exists among registered terminals
+  const destinationTerminal = useMemo(() => {
+    if (!activeRouteSelection?.destinationName || !terminals.length) return null;
+    const destName = activeRouteSelection.destinationName.toLowerCase().trim();
+    return terminals.find(
+      (t) =>
+        t.name.toLowerCase().trim() === destName ||
+        t.name.toLowerCase().includes(destName) ||
+        destName.includes(t.name.toLowerCase().trim())
+    );
+  }, [activeRouteSelection, terminals]);
+
+  // GeoJSON Line between origin terminal and destination terminal (if known)
+  const routeLineGeoJson = useMemo(() => {
+    if (!activeRouteSelection || !destinationTerminal) return null;
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [activeRouteSelection.originLongitude, activeRouteSelection.originLatitude],
+          [destinationTerminal.longitude, destinationTerminal.latitude],
+        ],
+      },
+    };
+  }, [activeRouteSelection, destinationTerminal]);
+
+  // Camera fly-to when activeRouteSelection changes
+  useEffect(() => {
+    if (activeRouteSelection && mapRef.current) {
+      const { originLatitude, originLongitude } = activeRouteSelection;
+      if (originLatitude && originLongitude) {
+        mapRef.current.flyTo({
+          center: [originLongitude, originLatitude],
+          zoom: 14.5,
+          duration: 900,
+        });
+      }
+    }
+  }, [activeRouteSelection]);
 
   // Filter terminals dynamically based on searchQuery (case-insensitive: matches terminal name OR approved route destinationName)
   const filteredTerminals = terminals.filter((terminal) => {
@@ -348,6 +402,32 @@ export default function TerminalMap({
         <NavigationControl position="bottom-right" showCompass={true} />
         <GeolocateControl position="bottom-right" trackUserLocation={true} />
 
+        {/* Active Route Path Line between Origin and Destination Terminal */}
+        {routeLineGeoJson && (
+          <Source id="active-route-line" type="geojson" data={routeLineGeoJson}>
+            <Layer
+              id="route-line-casing"
+              type="line"
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{
+                'line-color': '#102A24',
+                'line-width': 6,
+                'line-opacity': 0.85,
+              }}
+            />
+            <Layer
+              id="route-line-inner"
+              type="line"
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{
+                'line-color': '#2A835F',
+                'line-width': 4,
+                'line-dasharray': [2, 2],
+              }}
+            />
+          </Source>
+        )}
+
         {/* Render Custom HTML Markers for Terminals */}
         {filteredTerminals.map((terminal) => {
           const isSelected = selectedTerminal?.id === terminal.id;
@@ -442,6 +522,48 @@ export default function TerminalMap({
           </Marker>
         )}
       </Map>
+
+      {/* Floating Active Route Selection Overlay Card */}
+      {activeRouteSelection && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 max-w-lg w-[92%] sm:w-auto bg-white/95 backdrop-blur-xl border border-mengede-teal/30 rounded-2xl shadow-[0_12px_36px_rgba(9,35,40,0.2)] p-4 flex items-center justify-between gap-4 animate-slide-down">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-mengede-primary text-white flex items-center justify-center shrink-0 shadow-md">
+              <span className="material-symbols-outlined text-[22px]">alt_route</span>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-[#E8F7F4] text-mengede-teal text-[10px] font-bold uppercase tracking-wider border border-mengede-sage/30">
+                  Active Route Path
+                </span>
+                {activeRouteSelection.fare && (
+                  <span className="text-[12px] font-bold text-mengede-primary">
+                    {activeRouteSelection.fare} Birr
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 text-[14px] sm:text-[15px] font-bold text-mengede-dark mt-0.5 truncate">
+                <span className="truncate">{activeRouteSelection.originName}</span>
+                <span className="material-symbols-outlined text-[16px] text-mengede-primary shrink-0">
+                  arrow_forward
+                </span>
+                <span className="text-mengede-teal truncate">
+                  {activeRouteSelection.destinationName}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveRouteSelection(null)}
+            title="Close Route Path"
+            aria-label="Close Route Path"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-mengede-dark hover:bg-gray-100 active:scale-95 transition-all cursor-pointer shrink-0"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      )}
 
       {/* Floating "Locate Me" Button & Dismissible Error Toast */}
       <div className="absolute bottom-6 right-6 z-20 flex flex-col items-end gap-2.5 pointer-events-none">

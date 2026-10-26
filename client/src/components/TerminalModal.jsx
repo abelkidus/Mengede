@@ -5,8 +5,29 @@ export default function TerminalModal({
   userLocation,
   onClose,
   onSubmitMissingRoute,
+  onViewPath,
 }) {
   if (!terminal) return null;
+
+  const handleViewPath = (route) => {
+    const routeData = {
+      routeId: route.id,
+      originTerminalId: terminal.id,
+      originName: terminal.name,
+      originLatitude: terminal.latitude,
+      originLongitude: terminal.longitude,
+      destinationName: route.destinationName,
+      fare: route.fare,
+      status: route.status,
+    };
+
+    if (onViewPath) {
+      onViewPath(routeData);
+    }
+    if (onClose) {
+      onClose();
+    }
+  };
 
   const distanceKm = userLocation && terminal
     ? calculateDistanceKm(
@@ -71,19 +92,32 @@ export default function TerminalModal({
             approvedRoutes.map((route, index) => (
               <div
                 key={route.id || index}
-                className="flex items-center justify-between py-3.5 transition-colors hover:bg-mengede-surface/50 px-1 rounded-lg"
+                className="flex items-center justify-between py-3.5 transition-colors hover:bg-mengede-surface/50 px-1 rounded-lg gap-2"
               >
-                <div className="flex items-center gap-2 truncate">
-                  <span className="material-symbols-outlined text-[18px] text-mengede-sage">
+                <div className="flex items-center gap-2 truncate flex-1 min-w-0">
+                  <span className="material-symbols-outlined text-[18px] text-mengede-sage shrink-0">
                     arrow_forward
                   </span>
-                  <span className="text-[16px] font-medium text-mengede-dark truncate">
+                  <span className="text-[15px] sm:text-[16px] font-medium text-mengede-dark truncate">
                     {route.destinationName}
                   </span>
                 </div>
-                <span className="text-[16px] font-bold text-mengede-primary shrink-0 ml-3">
-                  {route.fare} Birr
-                </span>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <span className="text-[14px] sm:text-[16px] font-bold text-mengede-primary">
+                    {route.fare} Birr
+                  </span>
+                  {/* View Path Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleViewPath(route)}
+                    title={`View path to ${route.destinationName}`}
+                    aria-label={`View path to ${route.destinationName}`}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#E8F7F4] hover:bg-mengede-teal hover:text-white text-mengede-teal border border-mengede-sage/40 text-[12px] font-semibold active:scale-95 transition-all cursor-pointer shadow-xs"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">alt_route</span>
+                    <span className="hidden sm:inline">View Path</span>
+                  </button>
+                </div>
               </div>
             ))
           ) : (

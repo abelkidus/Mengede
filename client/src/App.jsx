@@ -13,6 +13,7 @@ import AdminLogin from './components/AdminLogin';
 function MainMap() {
   const navigate = useNavigate();
   const [selectedTerminal, setSelectedTerminal] = useState(null);
+  const [activeRouteSelection, setActiveRouteSelection] = useState(null);
   const [isSubmittingRoute, setIsSubmittingRoute] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
@@ -34,6 +35,8 @@ function MainMap() {
         onOpenAdmin={() => navigate('/admin')}
         userLocation={userLocation}
         onUserLocationChange={setUserLocation}
+        activeRouteSelection={activeRouteSelection}
+        onSelectActiveRoute={setActiveRouteSelection}
       />
 
       {/* Screen 2: Terminal Routes & Fares Bottom Sheet Modal */}
@@ -44,6 +47,10 @@ function MainMap() {
           onClose={() => setSelectedTerminal(null)}
           onSubmitMissingRoute={() => {
             setIsSubmittingRoute(true);
+          }}
+          onViewPath={(routeData) => {
+            setActiveRouteSelection(routeData);
+            setSelectedTerminal(null);
           }}
         />
       )}
