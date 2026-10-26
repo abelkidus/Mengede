@@ -191,7 +191,7 @@ export default function AdminDashboard({ onBackToMap }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#EEFCFA] text-mengede-dark font-['Plus_Jakarta_Sans',sans-serif] antialiased">
+    <div className="flex min-h-[100dvh] bg-[#EEFCFA] text-mengede-dark font-['Plus_Jakarta_Sans',sans-serif] antialiased">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -215,7 +215,7 @@ export default function AdminDashboard({ onBackToMap }) {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-[100dvh]">
         {/* Top Header */}
         <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-xl border-b border-gray-200/80 flex items-center justify-between px-6 lg:px-10 shadow-xs">
           <div className="flex items-center gap-3">

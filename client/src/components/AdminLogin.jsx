@@ -75,7 +75,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#EEFCFA] flex items-center justify-center p-4 font-['Plus_Jakarta_Sans',sans-serif] text-mengede-dark relative overflow-hidden">
+    <div className="min-h-[100dvh] w-full bg-[#EEFCFA] flex items-center justify-center p-4 font-['Plus_Jakarta_Sans',sans-serif] text-mengede-dark relative overflow-hidden">
       {/* Background Decorative Ambient Gradients */}
       <div className="absolute top-[-10%] right-[-5%] w-[450px] h-[450px] rounded-full bg-mengede-sage/25 blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[450px] h-[450px] rounded-full bg-mengede-teal/20 blur-3xl pointer-events-none" />

@@ -15,7 +15,7 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#EEFCFA] text-mengede-dark font-['Plus_Jakarta_Sans',sans-serif] antialiased overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-[#EEFCFA] text-mengede-dark font-['Plus_Jakarta_Sans',sans-serif] antialiased overflow-hidden">
       {/* Clean Tailwind Admin Sidebar */}
       <aside className="w-64 bg-mengede-dark text-white flex flex-col justify-between shrink-0 shadow-xl z-30 border-r border-white/10 select-none">
         <div className="flex flex-col flex-1 min-h-0">
