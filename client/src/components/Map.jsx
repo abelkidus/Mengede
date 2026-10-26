@@ -231,9 +231,12 @@ export default function TerminalMap({
     return Boolean(matchesName || matchesApprovedRoute);
   });
 
+  // Nearest terminal calculation and visibility state
+  const [showNearestTerminal, setShowNearestTerminal] = useState(true);
+
   // Calculate nearest terminal when userLocation is active
   const nearestTerminalInfo = useMemo(() => {
-    if (!userLocation || terminals.length === 0) return null;
+    if (!showNearestTerminal || !userLocation || terminals.length === 0) return null;
 
     let nearest = null;
     let minDistance = Infinity;
@@ -257,7 +260,7 @@ export default function TerminalMap({
       distanceKm: minDistance,
       formattedDistance: formatDistanceShort(minDistance),
     };
-  }, [userLocation, terminals]);
+  }, [showNearestTerminal, userLocation, terminals]);
 
   const handleTerminalClick = (terminal) => {
     if (!terminal) return;
@@ -287,6 +290,7 @@ export default function TerminalMap({
         const { latitude, longitude } = position.coords;
         const newLocation = { latitude, longitude };
         setUserLocation(newLocation);
+        setShowNearestTerminal(true);
         setIsLocating(false);
 
         mapRef.current?.flyTo({
@@ -374,23 +378,44 @@ export default function TerminalMap({
         </div>
 
         {/* Floating Nearest Terminal Quick-Action Pill */}
-        {nearestTerminalInfo && !searchQuery.trim() && (
+        {nearestTerminalInfo && showNearestTerminal && !searchQuery.trim() && (
           <div className="max-w-md mx-auto mt-2.5 flex justify-start pointer-events-auto animate-fade-in">
-            <button
-              type="button"
-              onClick={() => handleTerminalClick(nearestTerminalInfo.terminal)}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-xl border border-white/80 shadow-[0_4px_16px_rgba(9,35,40,0.12)] text-[12px] font-semibold text-mengede-dark hover:bg-white hover:text-mengede-primary hover:shadow-[0_6px_20px_rgba(42,131,95,0.2)] active:scale-95 transition-all cursor-pointer group"
-            >
-              <span className="w-5 h-5 rounded-full bg-mengede-primary/10 text-mengede-primary flex items-center justify-center shrink-0 group-hover:bg-mengede-primary group-hover:text-white transition-colors">
-                <span className="material-symbols-outlined text-[13px]">near_me</span>
-              </span>
-              <span>
-                Nearest: <span className="font-bold text-mengede-teal">{nearestTerminalInfo.terminal.name}</span> ({nearestTerminalInfo.formattedDistance})
-              </span>
-              <span className="material-symbols-outlined text-[15px] text-mengede-dark/40 group-hover:text-mengede-primary group-hover:translate-x-0.5 transition-all">
-                arrow_forward
-              </span>
-            </button>
+            <div className="inline-flex items-center gap-2 pl-3.5 pr-1.5 py-1.5 rounded-full bg-white/95 backdrop-blur-xl border border-white/80 shadow-[0_4px_16px_rgba(9,35,40,0.12)] text-[12px] font-semibold text-mengede-dark hover:bg-white hover:shadow-[0_6px_20px_rgba(42,131,95,0.2)] transition-all">
+              <button
+                type="button"
+                onClick={() => handleTerminalClick(nearestTerminalInfo.terminal)}
+                className="inline-flex items-center gap-2 text-left cursor-pointer group"
+              >
+                <span className="w-5 h-5 rounded-full bg-mengede-primary/10 text-mengede-primary flex items-center justify-center shrink-0 group-hover:bg-mengede-primary group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-[13px]">near_me</span>
+                </span>
+                <span className="group-hover:text-mengede-primary transition-colors">
+                  Nearest: <span className="font-bold text-mengede-teal">{nearestTerminalInfo.terminal.name}</span> ({nearestTerminalInfo.formattedDistance})
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNearestTerminal(false);
+                }}
+                aria-label="Dismiss nearest terminal banner"
+                title="Dismiss"
+                className="cursor-pointer p-1 text-gray-500 hover:text-gray-800 hover:bg-black/5 rounded-full transition-colors flex items-center justify-center shrink-0"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
 
