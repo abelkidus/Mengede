@@ -316,7 +316,7 @@ export default function TerminalMap({
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-mengede-surface select-none">
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-mengede-surface select-none">
       {/* Top Floating Search Bar Overlay */}
       <header className="absolute top-0 left-0 right-0 z-20 pt-4 px-4 pointer-events-none">
         <div className="max-w-md mx-auto flex items-center justify-between gap-3">
@@ -703,7 +703,7 @@ export default function TerminalMap({
       )}
 
       {/* Floating "Locate Me" Button & Dismissible Error Toast */}
-      <div className="absolute bottom-6 right-6 z-20 flex flex-col items-end gap-2.5 pointer-events-none">
+      <div className="absolute bottom-16 md:bottom-6 right-6 z-20 flex flex-col items-end gap-2.5 pointer-events-none">
         {/* Dismissible Geolocation Error Toast */}
         {locationError && (
           <div className="pointer-events-auto max-w-xs bg-white/95 backdrop-blur-xl text-mengede-dark px-4 py-3 rounded-2xl shadow-[0_8px_30px_rgba(9,35,40,0.18)] border border-red-200 flex items-start gap-3 animate-fade-in">
@@ -750,7 +750,7 @@ export default function TerminalMap({
 
       {/* Loading state indicator */}
       {loading && (
-        <div className="absolute bottom-6 left-6 z-20 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full shadow-lg border border-white/50 text-[13px] text-mengede-dark font-medium">
+        <div className="absolute bottom-16 md:bottom-6 left-6 z-20 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full shadow-lg border border-white/50 text-[13px] text-mengede-dark font-medium">
           <div className="w-4 h-4 border-2 border-mengede-primary border-t-transparent rounded-full animate-spin" />
           <span>Loading terminals...</span>
         </div>
@@ -758,7 +758,7 @@ export default function TerminalMap({
 
       {/* Error notification banner */}
       {error && (
-        <div className="absolute bottom-6 left-6 z-20 flex items-center gap-2 bg-red-50 text-red-700 px-3.5 py-2 rounded-xl shadow-lg border border-red-200 text-[13px]">
+        <div className="absolute bottom-16 md:bottom-6 left-6 z-20 flex items-center gap-2 bg-red-50 text-red-700 px-3.5 py-2 rounded-xl shadow-lg border border-red-200 text-[13px]">
           <span className="material-symbols-outlined text-[18px]">error</span>
           <span>Failed to load live terminals: {error}</span>
         </div>

@@ -24,7 +24,7 @@ function MainMap() {
   };
 
   return (
-    <main className="w-full h-screen overflow-hidden relative">
+    <main className="w-full h-[100dvh] overflow-hidden relative">
       {/* Interactive Map Canvas & Top Search Overlay */}
       <TerminalMap
         selectedTerminal={selectedTerminal}
