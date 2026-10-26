@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import Map, { Marker, NavigationControl } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import {
   fetchTerminals,
   createTerminal,
   updateTerminal,
   deleteTerminal,
 } from '../services/api';
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+const DEFAULT_CENTER = { latitude: 9.0320, longitude: 38.7480 };
 
 export default function TerminalsOverview() {
   const [terminals, setTerminals] = useState([]);
@@ -47,10 +52,53 @@ export default function TerminalsOverview() {
     loadTerminals();
   }, []);
 
+  const miniMapRef = useRef(null);
+
+  const currentLat = parseFloat(formData.latitude);
+  const currentLng = parseFloat(formData.longitude);
+  const validLat =
+    !isNaN(currentLat) && currentLat >= -90 && currentLat <= 90
+      ? currentLat
+      : DEFAULT_CENTER.latitude;
+  const validLng =
+    !isNaN(currentLng) && currentLng >= -180 && currentLng <= 180
+      ? currentLng
+      : DEFAULT_CENTER.longitude;
+
+  const handleMarkerDragEnd = (event) => {
+    const { lng, lat } = event.lngLat;
+    setFormData((prev) => ({
+      ...prev,
+      latitude: lat.toFixed(6),
+      longitude: lng.toFixed(6),
+    }));
+  };
+
+  useEffect(() => {
+    if (modalOpen && miniMapRef.current) {
+      const lat = parseFloat(formData.latitude);
+      const lng = parseFloat(formData.longitude);
+      const targetLat =
+        !isNaN(lat) && lat >= -90 && lat <= 90 ? lat : DEFAULT_CENTER.latitude;
+      const targetLng =
+        !isNaN(lng) && lng >= -180 && lng <= 180 ? lng : DEFAULT_CENTER.longitude;
+      miniMapRef.current.resize();
+      miniMapRef.current.flyTo({
+        center: [targetLng, targetLat],
+        zoom: 14,
+        duration: 500,
+      });
+    }
+  }, [modalOpen, editingTerminal]);
+
   // Open modal for Create
   const handleOpenCreate = () => {
     setEditingTerminal(null);
-    setFormData({ name: '', latitude: '', longitude: '' });
+    setFormData({
+      name: '',
+      latitude: DEFAULT_CENTER.latitude.toString(),
+      longitude: DEFAULT_CENTER.longitude.toString(),
+    });
     setFormError(null);
     setModalOpen(true);
   };
@@ -428,11 +476,11 @@ export default function TerminalsOverview() {
           onClick={handleCloseModal}
         >
           <div
-            className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col gap-6 animate-scale-up"
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl p-6 sm:p-7 flex flex-col gap-5 animate-scale-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-[#E8F7F4] text-mengede-primary flex items-center justify-center">
                   <span className="material-symbols-outlined text-[22px]">
@@ -472,6 +520,71 @@ export default function TerminalsOverview() {
 
             {/* Modal Form */}
             <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
+              {/* Mini Mapbox Location Picker */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-mengede-dark/75 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[15px] text-mengede-primary">
+                      pin_drop
+                    </span>
+                    <span>Pin Terminal Location</span>
+                  </label>
+                  <span className="text-[11px] text-mengede-teal font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">drag_pan</span>
+                    Drag pin to reposition
+                  </span>
+                </div>
+
+                <div className="w-full h-52 rounded-2xl overflow-hidden border border-gray-200/90 shadow-inner relative bg-gray-100">
+                  <Map
+                    ref={miniMapRef}
+                    initialViewState={{
+                      latitude: validLat,
+                      longitude: validLng,
+                      zoom: 14,
+                    }}
+                    mapboxAccessToken={MAPBOX_TOKEN}
+                    mapStyle="mapbox://styles/mapbox/light-v11"
+                    style={{ width: '100%', height: '100%' }}
+                    onLoad={() => miniMapRef.current?.resize()}
+                    onClick={(e) => {
+                      if (submitting) return;
+                      const { lng, lat } = e.lngLat;
+                      setFormData((prev) => ({
+                        ...prev,
+                        latitude: lat.toFixed(6),
+                        longitude: lng.toFixed(6),
+                      }));
+                    }}
+                  >
+                    <NavigationControl position="bottom-right" showCompass={false} />
+
+                    <Marker
+                      latitude={validLat}
+                      longitude={validLng}
+                      draggable={!submitting}
+                      onDragEnd={handleMarkerDragEnd}
+                      anchor="bottom"
+                    >
+                      <div className="relative group cursor-grab active:cursor-grabbing flex flex-col items-center">
+                        <div className="px-2 py-0.5 mb-1 bg-mengede-dark text-white text-[10px] font-bold rounded-md shadow-md whitespace-nowrap border border-white/20 flex items-center gap-1 pointer-events-none select-none">
+                          <span className="material-symbols-outlined text-[12px] text-amber-300">
+                            drag_indicator
+                          </span>
+                          <span>Drag pin</span>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-mengede-primary text-white flex items-center justify-center shadow-[0_4px_12px_rgba(42,131,95,0.45)] border-2 border-white ring-2 ring-mengede-primary/30">
+                          <span className="material-symbols-outlined text-[18px]">
+                            location_on
+                          </span>
+                        </div>
+                        <div className="w-2 h-2 bg-mengede-primary rotate-45 -mt-1 shadow-xs" />
+                      </div>
+                    </Marker>
+                  </Map>
+                </div>
+              </div>
+
               {/* Terminal Name */}
               <div className="flex flex-col gap-1.5">
                 <label
