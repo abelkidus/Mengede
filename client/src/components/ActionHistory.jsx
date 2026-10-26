@@ -109,7 +109,7 @@ export default function ActionHistory() {
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 p-6 lg:p-10 max-w-6xl w-full mx-auto flex flex-col gap-6">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 max-w-6xl w-full mx-auto flex flex-col gap-6">
         {/* Page Heading & Stats */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -122,18 +122,18 @@ export default function ActionHistory() {
           </div>
 
           {/* Quick Metrics Badges */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="px-3.5 py-1.5 bg-white rounded-xl shadow-xs border border-gray-200/80 text-[13px] font-semibold text-mengede-dark flex items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full md:w-auto">
+            <div className="px-3.5 py-2 bg-white rounded-xl shadow-xs border border-gray-200/80 text-[13px] font-semibold text-mengede-dark flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-mengede-teal" />
               <span>Total Logged: <b>{history.length}</b></span>
             </div>
-            <div className="px-3.5 py-1.5 bg-[#E8F7F4] rounded-xl shadow-xs border border-mengede-sage/30 text-[13px] font-semibold text-mengede-teal flex items-center gap-1.5">
+            <div className="px-3.5 py-2 bg-[#E8F7F4] rounded-xl shadow-xs border border-mengede-sage/30 text-[13px] font-semibold text-mengede-teal flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[16px] text-mengede-primary">
                 check_circle
               </span>
               <span>Approved: <b>{totalApproved}</b></span>
             </div>
-            <div className="px-3.5 py-1.5 bg-rose-50 rounded-xl shadow-xs border border-rose-200 text-[13px] font-semibold text-rose-700 flex items-center gap-1.5">
+            <div className="px-3.5 py-2 bg-rose-50 rounded-xl shadow-xs border border-rose-200 text-[13px] font-semibold text-rose-700 flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[16px] text-rose-600">
                 cancel
               </span>
@@ -279,7 +279,7 @@ export default function ActionHistory() {
         {!loading && filteredHistory.length > 0 && (
           <div className="w-full rounded-2xl overflow-hidden shadow-sm bg-white border border-gray-200/80">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full min-w-[620px] text-left border-collapse">
                 <thead>
                   <tr className="bg-mengede-teal text-white">
                     <th className="py-3.5 px-5 text-[13px] font-semibold tracking-wider uppercase">

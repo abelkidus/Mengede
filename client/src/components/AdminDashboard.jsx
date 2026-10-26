@@ -217,7 +217,7 @@ export default function AdminDashboard({ onBackToMap }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-[100dvh]">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-xl border-b border-gray-200/80 flex items-center justify-between px-6 lg:px-10 shadow-xs">
+        <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-xl border-b border-gray-200/80 flex items-center justify-between px-4 sm:px-6 lg:px-10 shadow-xs">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -281,7 +281,7 @@ export default function AdminDashboard({ onBackToMap }) {
         </header>
 
         {/* Dashboard Body */}
-        <main className="flex-1 p-6 lg:p-10 pb-28 max-w-6xl w-full mx-auto flex flex-col gap-6">
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-28 max-w-6xl w-full mx-auto flex flex-col gap-6">
           {/* Page Heading */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -346,7 +346,7 @@ export default function AdminDashboard({ onBackToMap }) {
             pendingRoutes.length > 0 && (
               <div className="w-full rounded-2xl overflow-hidden shadow-sm bg-white border border-gray-200/80">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+                  <table className="w-full min-w-[720px] text-left border-collapse">
                     <thead>
                       <tr className="bg-mengede-teal text-white">
                         <th className="py-3.5 px-4 w-12 text-center">

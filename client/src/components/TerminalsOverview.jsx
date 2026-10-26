@@ -225,7 +225,7 @@ export default function TerminalsOverview() {
   );
 
   return (
-    <div className="flex flex-col min-h-full p-6 lg:p-10 max-w-6xl w-full mx-auto gap-6 font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="flex flex-col min-h-full p-4 sm:p-6 lg:p-10 max-w-6xl w-full mx-auto gap-6 font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -378,7 +378,7 @@ export default function TerminalsOverview() {
         filteredTerminals.length > 0 && (
           <div className="w-full rounded-2xl overflow-hidden shadow-sm bg-white border border-gray-200/80">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full min-w-[640px] text-left border-collapse">
                 <thead>
                   <tr className="bg-mengede-teal text-white">
                     <th className="py-3.5 px-5 text-[13px] font-semibold tracking-wider uppercase">
