@@ -5,6 +5,11 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: [
+      { find: /^react-map-gl$/, replacement: 'react-map-gl/mapbox' },
+    ],
+  },
   server: {
     proxy: {
       '/api': {

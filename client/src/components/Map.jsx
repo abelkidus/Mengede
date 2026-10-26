@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import Map, { Marker, NavigationControl, GeolocateControl, Popup, Source, Layer } from 'react-map-gl/mapbox';
+import Map, { Marker, NavigationControl, GeolocateControl, Popup } from 'react-map-gl/mapbox';
+import { Source, Layer } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../utils/distance';
 import { fetchTerminals } from '../services/api';
@@ -52,6 +53,13 @@ export default function TerminalMap({
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState(null);
   const [routeDetails, setRouteDetails] = useState(null);
+
+  const handleClearRoute = () => {
+    setActiveRouteSelection(null);
+    setRouteGeoJSON(null);
+    setRouteDetails(null);
+    setRouteError(null);
+  };
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
   const mapRef = useRef(null);
@@ -504,22 +512,15 @@ export default function TerminalMap({
         {routeGeoJSON && (
           <Source id="active-route-line" type="geojson" data={routeGeoJSON}>
             <Layer
-              id="route-line-casing"
+              id="route-line"
               type="line"
-              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-              paint={{
-                'line-color': '#0B201B',
-                'line-width': 7,
-                'line-opacity': 0.85,
+              layout={{
+                'line-cap': 'round',
+                'line-join': 'round',
               }}
-            />
-            <Layer
-              id="route-line-inner"
-              type="line"
-              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
               paint={{
                 'line-color': '#2A835F',
-                'line-width': 4.5,
+                'line-width': 4,
               }}
             />
           </Source>
@@ -639,8 +640,8 @@ export default function TerminalMap({
         )}
       </Map>
 
-      {/* Floating Active Route Selection Overlay Card */}
-      {activeRouteSelection && (
+      {/* Floating Active Route Selection Overlay Card & Clear Route Button */}
+      {(activeRouteSelection || routeGeoJSON) && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 max-w-lg w-[92%] sm:w-auto bg-white/95 backdrop-blur-xl border border-mengede-teal/30 rounded-2xl shadow-[0_12px_36px_rgba(9,35,40,0.2)] p-4 flex items-center justify-between gap-4 animate-slide-down">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-mengede-primary text-white flex items-center justify-center shrink-0 shadow-md">
@@ -651,7 +652,7 @@ export default function TerminalMap({
                 <span className="px-2 py-0.5 rounded-full bg-[#E8F7F4] text-mengede-teal text-[10px] font-bold uppercase tracking-wider border border-mengede-sage/30">
                   Driving Route
                 </span>
-                {activeRouteSelection.fare && (
+                {activeRouteSelection?.fare && (
                   <span className="text-[12px] font-bold text-mengede-primary">
                     {activeRouteSelection.fare} Birr
                   </span>
@@ -663,12 +664,12 @@ export default function TerminalMap({
                 )}
               </div>
               <div className="flex items-center gap-1.5 text-[14px] sm:text-[15px] font-bold text-mengede-dark mt-0.5 truncate">
-                <span className="truncate">{activeRouteSelection.originName}</span>
+                <span className="truncate">{activeRouteSelection?.originName || 'Origin'}</span>
                 <span className="material-symbols-outlined text-[16px] text-mengede-primary shrink-0">
                   arrow_forward
                 </span>
                 <span className="text-mengede-teal truncate">
-                  {activeRouteSelection.destinationName}
+                  {activeRouteSelection?.destinationName || 'Destination'}
                 </span>
               </div>
               {/* Route status indicators */}
@@ -687,14 +688,16 @@ export default function TerminalMap({
             </div>
           </div>
 
+          {/* Floating Clear Route button */}
           <button
             type="button"
-            onClick={() => setActiveRouteSelection(null)}
-            title="Close Route Path"
-            aria-label="Close Route Path"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-mengede-dark hover:bg-gray-100 active:scale-95 transition-all cursor-pointer shrink-0"
+            onClick={handleClearRoute}
+            title="Clear Route"
+            aria-label="Clear Route"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-600 active:scale-95 transition-all cursor-pointer font-semibold text-[13px] shrink-0 border border-gray-200/60 shadow-xs"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
+            <span>Clear Route</span>
           </button>
         </div>
       )}
