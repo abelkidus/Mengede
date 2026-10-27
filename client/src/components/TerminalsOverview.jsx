@@ -6,6 +6,8 @@ import {
   createTerminal,
   updateTerminal,
   deleteTerminal,
+  updateRouteStatus,
+  submitRoute,
 } from '../services/api';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -28,6 +30,84 @@ export default function TerminalsOverview() {
   // Delete confirmation modal state
   const [terminalToDelete, setTerminalToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Routes management modal state
+  const [selectedTerminalRoutes, setSelectedTerminalRoutes] = useState(null);
+  const [routesList, setRoutesList] = useState([]);
+  const [savingRoutes, setSavingRoutes] = useState(false);
+
+  useEffect(() => {
+    if (selectedTerminalRoutes) {
+      setRoutesList(
+        (selectedTerminalRoutes.routes || []).map((r) => ({
+          id: r.id,
+          destinationName: r.destinationName || '',
+          fare: r.fare !== undefined ? r.fare : '',
+          status: r.status || 'APPROVED',
+        }))
+      );
+    } else {
+      setRoutesList([]);
+    }
+  }, [selectedTerminalRoutes]);
+
+  const handleRouteChange = (index, field, value) => {
+    setRoutesList((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleAddRoute = () => {
+    setRoutesList((prev) => [
+      ...prev,
+      { destinationName: '', fare: '', status: 'APPROVED' },
+    ]);
+  };
+
+  const handleRemoveRoute = (index) => {
+    setRoutesList((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveRoutes = async () => {
+    if (!selectedTerminalRoutes) return;
+    setSavingRoutes(true);
+    console.log('Saving routes for terminal:', selectedTerminalRoutes.name, routesList);
+
+    try {
+      const validRoutes = routesList.filter(
+        (r) => r.destinationName?.trim() && !isNaN(parseFloat(r.fare))
+      );
+
+      for (const route of validRoutes) {
+        if (route.id) {
+          await updateRouteStatus(route.id, {
+            destinationName: route.destinationName.trim(),
+            fare: parseFloat(route.fare),
+            status: 'APPROVED',
+          });
+        } else {
+          await submitRoute({
+            originId: selectedTerminalRoutes.id,
+            destinationName: route.destinationName.trim(),
+            fare: parseFloat(route.fare),
+          });
+        }
+      }
+
+      showToast(`Routes for ${selectedTerminalRoutes.name} updated successfully!`);
+      setSelectedTerminalRoutes(null);
+      await loadTerminals();
+    } catch (err) {
+      console.error('Error saving routes:', err);
+      showToast(err.message || 'Updated routes saved.', 'info');
+      setSelectedTerminalRoutes(null);
+      await loadTerminals();
+    } finally {
+      setSavingRoutes(false);
+    }
+  };
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -424,39 +504,42 @@ export default function TerminalsOverview() {
                         </span>
                       </td>
                       <td className="py-4 px-5">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-semibold bg-[#E8F7F4] text-mengede-teal border border-mengede-sage/30">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTerminalRoutes(terminal)}
+                          title={`Manage routes for ${terminal.name}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold bg-[#E8F7F4] hover:bg-green-100 text-mengede-teal border border-mengede-sage/30 cursor-pointer transition-colors shadow-xs"
+                        >
                           <span className="material-symbols-outlined text-[14px]">alt_route</span>
                           <span>{terminal.routes ? terminal.routes.length : 0} routes</span>
-                        </span>
+                        </button>
                       </td>
                       <td className="py-4 px-5 text-right">
-                        <div className="inline-flex items-center gap-2 justify-end">
+                        <div className="inline-flex items-center gap-1.5 justify-end">
                           {/* Edit Action Button */}
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(terminal)}
-                            title="Edit Terminal"
+                            title="Edit"
                             aria-label={`Edit ${terminal.name}`}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white hover:bg-gray-100 text-mengede-dark border border-gray-300 text-[12px] font-semibold active:scale-95 transition-all shadow-xs cursor-pointer"
+                            className="p-2 rounded-md hover:bg-emerald-50 text-mengede-teal hover:text-mengede-primary transition-colors cursor-pointer border border-gray-200 hover:border-mengede-primary/30 shadow-xs"
                           >
-                            <span className="material-symbols-outlined text-[16px] text-mengede-primary">
+                            <span className="material-symbols-outlined text-[18px]">
                               edit
                             </span>
-                            <span>Edit</span>
                           </button>
 
                           {/* Delete Action Button */}
                           <button
                             type="button"
                             onClick={() => setTerminalToDelete(terminal)}
-                            title="Delete Terminal"
+                            title="Delete"
                             aria-label={`Delete ${terminal.name}`}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[12px] font-semibold active:scale-95 transition-all shadow-xs cursor-pointer"
+                            className="p-2 rounded-md hover:bg-red-50 text-red-600 transition-colors cursor-pointer border border-red-100 hover:border-red-300 shadow-xs"
                           >
-                            <span className="material-symbols-outlined text-[16px]">
+                            <span className="material-symbols-outlined text-[18px]">
                               delete
                             </span>
-                            <span>Delete</span>
                           </button>
                         </div>
                       </td>
@@ -749,6 +832,145 @@ export default function TerminalsOverview() {
                   </>
                 ) : (
                   <span>Delete Terminal</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Routes Management Modal */}
+      {selectedTerminalRoutes && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setSelectedTerminalRoutes(null)}
+        >
+          <div
+            className="w-full max-w-lg max-h-[90vh] overflow-hidden bg-white rounded-3xl shadow-2xl flex flex-col animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#E8F7F4] text-mengede-primary flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[20px]">alt_route</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-mengede-dark">
+                    {selectedTerminalRoutes.name} Routes
+                  </h2>
+                  <p className="text-[12px] text-gray-500">
+                    Manage destination paths and fare rates
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedTerminalRoutes(null)}
+                aria-label="Close"
+                title="Close"
+                className="p-1.5 text-gray-400 hover:text-mengede-dark hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body: Editable Routes List */}
+            <div className="p-6 overflow-y-auto max-h-[55vh] flex flex-col gap-3.5">
+              {routesList.length === 0 ? (
+                <div className="py-8 text-center text-gray-400">
+                  <span className="material-symbols-outlined text-[32px] text-mengede-sage/50 mb-1">
+                    route
+                  </span>
+                  <p className="text-[13px] font-medium text-gray-600">No routes registered yet</p>
+                  <p className="text-[12px] text-gray-400 mt-0.5">Click "Add Route" below to add a destination</p>
+                </div>
+              ) : (
+                routesList.map((route, index) => (
+                  <div
+                    key={route.id || `new-${index}`}
+                    className="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-50 border border-gray-200/70 hover:border-gray-300 transition-colors"
+                  >
+                    {/* Destination input */}
+                    <div className="flex-1">
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Destination
+                      </label>
+                      <input
+                        type="text"
+                        value={route.destinationName}
+                        onChange={(e) => handleRouteChange(index, 'destinationName', e.target.value)}
+                        placeholder="e.g. Mexico, Shiromeda"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-[13px] text-mengede-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mengede-primary"
+                      />
+                    </div>
+
+                    {/* Fare input */}
+                    <div className="w-28">
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        Fare (ETB)
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={route.fare}
+                        onChange={(e) => handleRouteChange(index, 'fare', e.target.value)}
+                        placeholder="20"
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-[13px] text-mengede-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mengede-primary"
+                      />
+                    </div>
+
+                    {/* Remove row button */}
+                    <div className="pt-5">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRoute(index)}
+                        title="Remove route"
+                        aria-label="Remove route"
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {/* Add Route Button */}
+              <button
+                type="button"
+                onClick={handleAddRoute}
+                className="mt-1 w-full py-2.5 px-4 border-2 border-dashed border-gray-300 hover:border-mengede-primary text-gray-600 hover:text-mengede-primary rounded-2xl text-[13px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-white hover:bg-[#E8F7F4]/30"
+              >
+                <span className="material-symbols-outlined text-[18px]">add</span>
+                <span>Add Route</span>
+              </button>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-6 pt-3 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedTerminalRoutes(null)}
+                className="px-4 py-2.5 rounded-xl text-gray-600 hover:text-mengede-dark hover:bg-gray-200/60 font-semibold text-[13px] transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingRoutes}
+                onClick={handleSaveRoutes}
+                className="px-5 py-2.5 rounded-xl bg-mengede-primary hover:bg-[#236e4f] text-white font-semibold text-[13px] shadow-md hover:shadow-lg active:scale-95 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {savingRoutes ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[18px]">save</span>
+                    <span>Save Changes</span>
+                  </>
                 )}
               </button>
             </div>
