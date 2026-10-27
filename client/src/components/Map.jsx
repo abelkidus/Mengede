@@ -217,19 +217,32 @@ export default function TerminalMap({
   }, [activeRouteSelection]);
 
   // Filter terminals dynamically based on searchQuery (case-insensitive: matches terminal name OR approved route destinationName)
-  const filteredTerminals = terminals.filter((terminal) => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
+  // and sort prioritizing direct terminal name matches over route matches
+  const filteredTerminals = terminals
+    .filter((terminal) => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) return true;
 
-    const matchesName = terminal.name?.toLowerCase().includes(query);
-    const matchesApprovedRoute = terminal.routes?.some(
-      (route) =>
-        (!route.status || route.status === 'APPROVED') &&
-        route.destinationName?.toLowerCase().includes(query)
-    );
+      const matchesName = terminal.name?.toLowerCase().includes(query);
+      const matchesApprovedRoute = terminal.routes?.some(
+        (route) =>
+          (!route.status || route.status === 'APPROVED') &&
+          route.destinationName?.toLowerCase().includes(query)
+      );
 
-    return Boolean(matchesName || matchesApprovedRoute);
-  });
+      return Boolean(matchesName || matchesApprovedRoute);
+    })
+    .sort((a, b) => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) return (a.name || '').localeCompare(b.name || '');
+
+      const aMatchesName = a.name?.toLowerCase().includes(query);
+      const bMatchesName = b.name?.toLowerCase().includes(query);
+
+      if (aMatchesName && !bMatchesName) return -1;
+      if (!aMatchesName && bMatchesName) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
 
   // Nearest terminal calculation and visibility state
   const [showNearestTerminal, setShowNearestTerminal] = useState(true);
