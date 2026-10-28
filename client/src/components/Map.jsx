@@ -348,7 +348,10 @@ export default function TerminalMap({
               ref={searchInputRef}
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setActiveIndex(-1);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowDown') {
                   e.preventDefault();
@@ -358,15 +361,12 @@ export default function TerminalMap({
                   setActiveIndex((prev) => Math.max(prev - 1, 0));
                 } else if (e.key === 'Enter') {
                   e.preventDefault();
-                  if (filteredTerminals.length > 0) {
-                    const selected =
-                      activeIndex >= 0 && activeIndex < filteredTerminals.length
-                        ? filteredTerminals[activeIndex]
-                        : filteredTerminals[0];
-                    handleTerminalClick(selected);
+                  if (activeIndex >= 0 && results[activeIndex]) {
+                    handleTerminalClick(results[activeIndex]);
                   }
                 } else if (e.key === 'Escape') {
                   setSearchQuery('');
+                  setActiveIndex(-1);
                 }
               }}
               placeholder="Search terminals (e.g. Megenagna, Mexico)..."
@@ -377,6 +377,7 @@ export default function TerminalMap({
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
+                  setActiveIndex(-1);
                   searchInputRef.current?.focus();
                 }}
                 aria-label="Clear search"
