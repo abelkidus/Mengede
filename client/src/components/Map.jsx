@@ -244,6 +244,7 @@ export default function TerminalMap({
       if (!aMatchesName && bMatchesName) return 1;
       return (a.name || '').localeCompare(b.name || '');
     });
+  const results = filteredTerminals;
 
   // Nearest terminal calculation and visibility state
   const [showNearestTerminal, setShowNearestTerminal] = useState(true);
@@ -349,10 +350,20 @@ export default function TerminalMap({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setActiveIndex((prev) => Math.min(prev + 1, results.length - 1));
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setActiveIndex((prev) => Math.max(prev - 1, 0));
+                } else if (e.key === 'Enter') {
                   e.preventDefault();
                   if (filteredTerminals.length > 0) {
-                    handleTerminalClick(filteredTerminals[0]);
+                    const selected =
+                      activeIndex >= 0 && activeIndex < filteredTerminals.length
+                        ? filteredTerminals[activeIndex]
+                        : filteredTerminals[0];
+                    handleTerminalClick(selected);
                   }
                 } else if (e.key === 'Escape') {
                   setSearchQuery('');
