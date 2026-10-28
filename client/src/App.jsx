@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import TerminalMap from './components/Map';
 import TerminalModal from './components/TerminalModal';
 import SubmitRouteForm from './components/SubmitRouteForm';
@@ -87,6 +88,7 @@ function MainMap() {
 function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Routes>
         {/* Main Map interface */}
         <Route path="/" element={<MainMap />} />
