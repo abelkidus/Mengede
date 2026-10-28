@@ -540,6 +540,11 @@ export default function TerminalMap({
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/light-v11"
         style={{ width: '100%', height: '100%' }}
+        maxBounds={[
+          [38.60, 8.80],
+          [38.95, 9.15],
+        ]}
+        minZoom={10}
         reuseMaps
       >
         {/* Navigation / Map Controls on Right */}
