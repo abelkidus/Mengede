@@ -27,6 +27,7 @@ export default function TerminalMap({
 }) {
   const [terminals, setTerminals] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [hoveredTerminal, setHoveredTerminal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -438,7 +439,7 @@ export default function TerminalMap({
             <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_12px_32px_-4px_rgba(9,35,40,0.18)] border border-white/60 max-h-72 overflow-y-auto p-2">
               {filteredTerminals.length > 0 ? (
                 <div className="space-y-1">
-                  {filteredTerminals.map((terminal) => {
+                  {filteredTerminals.map((terminal, index) => {
                     const query = searchQuery.trim().toLowerCase();
                     const approvedRoutes = terminal.routes?.filter(
                       (r) => !r.status || r.status === 'APPROVED'
@@ -468,7 +469,9 @@ export default function TerminalMap({
                           handleTerminalClick(terminal);
                           setSearchQuery('');
                         }}
-                        className="w-full text-left px-3.5 py-2.5 rounded-xl transition-all duration-150 flex items-center gap-3 group cursor-pointer hover:bg-mengede-surface-container/70 active:bg-mengede-surface-high"
+                        className={`w-full text-left px-3.5 py-2.5 rounded-xl transition-all duration-150 flex items-center gap-3 group cursor-pointer hover:bg-mengede-surface-container/70 active:bg-mengede-surface-high ${
+                          index === activeIndex ? 'bg-gray-100' : ''
+                        }`}
                       >
                         <div className="w-9 h-9 rounded-full bg-mengede-surface-container text-mengede-primary flex items-center justify-center shrink-0 group-hover:bg-mengede-primary group-hover:text-white transition-all duration-150 shadow-xs">
                           <span className="material-symbols-outlined text-[18px]">
