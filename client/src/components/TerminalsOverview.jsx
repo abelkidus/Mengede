@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import Map, { Marker, NavigationControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {
@@ -18,7 +19,7 @@ export default function TerminalsOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [toast, setToast] = useState(null);
+  const [localToast, setLocalToast] = useState(null);
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -73,7 +74,6 @@ export default function TerminalsOverview() {
   const handleSaveRoutes = async () => {
     if (!selectedTerminalRoutes) return;
     setSavingRoutes(true);
-    console.log('Saving routes for terminal:', selectedTerminalRoutes.name, routesList);
 
     try {
       const validRoutes = routesList.filter(
@@ -96,11 +96,13 @@ export default function TerminalsOverview() {
         }
       }
 
+      toast.success("Changes saved successfully!");
       showToast(`Routes for ${selectedTerminalRoutes.name} updated successfully!`);
       setSelectedTerminalRoutes(null);
       await loadTerminals();
     } catch (err) {
       console.error('Error saving routes:', err);
+      toast.error("Failed to update.");
       showToast(err.message || 'Updated routes saved.', 'info');
       setSelectedTerminalRoutes(null);
       await loadTerminals();
@@ -110,8 +112,8 @@ export default function TerminalsOverview() {
   };
 
   const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
+    setLocalToast({ message, type });
+    setTimeout(() => setLocalToast(null), 3500);
   };
 
   const loadTerminals = async () => {
@@ -246,6 +248,7 @@ export default function TerminalsOverview() {
               : t
           )
         );
+        toast.success("Changes saved successfully!");
         showToast(`Terminal "${trimmedName}" updated successfully.`);
       } else {
         // Create new terminal
@@ -260,12 +263,14 @@ export default function TerminalsOverview() {
           ...prev,
           { ...created, routes: [] },
         ]);
+        toast.success("Changes saved successfully!");
         showToast(`Terminal "${trimmedName}" created successfully.`);
       }
 
       handleCloseModal();
     } catch (err) {
       console.error('Error saving terminal:', err);
+      toast.error("Failed to update.");
       setFormError(
         err.data?.error || err.message || 'An error occurred while saving the terminal.'
       );
@@ -284,10 +289,12 @@ export default function TerminalsOverview() {
 
       // Optimistically remove from state
       setTerminals((prev) => prev.filter((t) => t.id !== terminalToDelete.id));
+      toast.success("Changes saved successfully!");
       showToast(`Terminal "${terminalToDelete.name}" deleted successfully.`);
       setTerminalToDelete(null);
     } catch (err) {
       console.error('Error deleting terminal:', err);
+      toast.error("Failed to update.");
       showToast(err.message || 'Failed to delete terminal.', 'error');
     } finally {
       setDeleting(false);
@@ -307,24 +314,24 @@ export default function TerminalsOverview() {
   return (
     <div className="flex flex-col min-h-full p-4 sm:p-6 lg:p-10 max-w-6xl w-full mx-auto gap-6 font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Toast Notification */}
-      {toast && (
+      {localToast && (
         <div
           className={`fixed top-6 right-6 z-60 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-white border border-white/20 animate-fade-in ${
-            toast.type === 'error'
+            localToast.type === 'error'
               ? 'bg-red-600'
-              : toast.type === 'info'
+              : localToast.type === 'info'
               ? 'bg-gray-700'
               : 'bg-mengede-teal'
           }`}
         >
           <span className="material-symbols-outlined text-[20px]">
-            {toast.type === 'error'
+            {localToast.type === 'error'
               ? 'error'
-              : toast.type === 'info'
+              : localToast.type === 'info'
               ? 'cancel'
               : 'check_circle'}
           </span>
-          <span className="text-[14px] font-medium">{toast.message}</span>
+          <span className="text-[14px] font-medium">{localToast.message}</span>
         </div>
       )}
 
