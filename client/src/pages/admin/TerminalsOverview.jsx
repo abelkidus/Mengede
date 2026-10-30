@@ -9,6 +9,7 @@ import {
   deleteTerminal,
   updateRouteStatus,
   submitRoute,
+  updateTerminalRoutes,
 } from '../../services/api';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -76,36 +77,16 @@ export default function TerminalsOverview() {
     setSavingRoutes(true);
 
     try {
-      const validRoutes = routesList.filter(
-        (r) => r.destinationName?.trim() && !isNaN(parseFloat(r.fare))
-      );
-
-      for (const route of validRoutes) {
-        if (route.id) {
-          await updateRouteStatus(route.id, {
-            destinationName: route.destinationName.trim(),
-            fare: parseFloat(route.fare),
-            status: 'APPROVED',
-          });
-        } else {
-          await submitRoute({
-            originId: selectedTerminalRoutes.id,
-            destinationName: route.destinationName.trim(),
-            fare: parseFloat(route.fare),
-          });
-        }
-      }
-
-      toast.success("Changes saved successfully!");
+      const localRoutesState = routesList;
+      await updateTerminalRoutes(selectedTerminalRoutes.id, localRoutesState);
+      toast.success("Routes updated successfully!");
       showToast(`Routes for ${selectedTerminalRoutes.name} updated successfully!`);
       setSelectedTerminalRoutes(null);
       await loadTerminals();
     } catch (err) {
       console.error('Error saving routes:', err);
-      toast.error("Failed to update.");
-      showToast(err.message || 'Updated routes saved.', 'info');
-      setSelectedTerminalRoutes(null);
-      await loadTerminals();
+      toast.error("Failed to update routes. Please try again.");
+      showToast('Failed to update routes. Please try again.', 'error');
     } finally {
       setSavingRoutes(false);
     }
