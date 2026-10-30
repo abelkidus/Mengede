@@ -143,11 +143,12 @@ export const deleteTerminal = (terminalId) =>
     method: 'DELETE',
   });
 
-export const updateTerminalRoutes = (terminalId, routes) =>
-  apiFetch(`${API_BASE_URL}/terminals/${terminalId}/routes`, {
+export async function updateTerminalRoutes(terminalId, routesArray) {
+  return await apiFetch(`/api/terminals/${terminalId}/routes`, {
     method: 'PUT',
-    body: JSON.stringify(Array.isArray(routes) ? { routes } : routes),
+    body: JSON.stringify({ routes: routesArray }),
   });
+}
 
 export const bulkUpdateRouteStatus = (ids, status) =>
   apiFetch(`${API_BASE_URL}/admin/routes/bulk`, {
