@@ -143,6 +143,12 @@ export const deleteTerminal = (terminalId) =>
     method: 'DELETE',
   });
 
+export const updateTerminalRoutes = (terminalId, routes) =>
+  apiFetch(`${API_BASE_URL}/terminals/${terminalId}/routes`, {
+    method: 'PUT',
+    body: JSON.stringify(Array.isArray(routes) ? { routes } : routes),
+  });
+
 export const bulkUpdateRouteStatus = (ids, status) =>
   apiFetch(`${API_BASE_URL}/admin/routes/bulk`, {
     method: 'PATCH',
@@ -160,6 +166,7 @@ export const api = {
   fetchPendingRoutes,
   fetchActionHistory,
   updateRouteStatus,
+  updateTerminalRoutes,
   bulkUpdateRouteStatus,
   adminLogin,
   createTerminal,

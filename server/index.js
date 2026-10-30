@@ -21,6 +21,7 @@ const {
   updateTerminalSchema,
   deleteTerminalSchema,
 } = require('./middleware/validate');
+const terminalRoutes = require('./routes/terminalRoutes');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -34,7 +35,7 @@ app.use(helmet());
 app.use(
   cors({
     origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   })
 );
@@ -333,6 +334,10 @@ app.delete('/api/admin/terminals/:id', authMiddleware, validate(deleteTerminalSc
     next(error);
   }
 });
+
+// Terminal routes (including PUT /:id/routes)
+app.use('/api/terminals', terminalRoutes);
+app.use('/api/admin/terminals', terminalRoutes);
 
 // Centralized Express error-handling middleware at the bottom of the middleware stack
 app.use((err, req, res, next) => {

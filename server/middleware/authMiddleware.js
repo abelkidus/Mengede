@@ -46,4 +46,6 @@ function authMiddleware(req, res, next) {
 }
 
 authMiddleware.authMiddleware = authMiddleware;
+authMiddleware.requireAuth = authMiddleware;
 module.exports = authMiddleware;
+module.exports.requireAuth = authMiddleware;
