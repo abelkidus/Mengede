@@ -20,7 +20,6 @@ export default function TerminalsOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [localToast, setLocalToast] = useState(null);
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -80,21 +79,14 @@ export default function TerminalsOverview() {
       const localRoutesState = routesList;
       await updateTerminalRoutes(selectedTerminalRoutes.id, localRoutesState);
       toast.success("Routes updated successfully!");
-      showToast(`Routes for ${selectedTerminalRoutes.name} updated successfully!`);
       setSelectedTerminalRoutes(null);
       await loadTerminals();
     } catch (err) {
       console.error('Error saving routes:', err);
       toast.error("Failed to update routes. Please try again.");
-      showToast('Failed to update routes. Please try again.', 'error');
     } finally {
       setSavingRoutes(false);
     }
-  };
-
-  const showToast = (message, type = 'success') => {
-    setLocalToast({ message, type });
-    setTimeout(() => setLocalToast(null), 3500);
   };
 
   const loadTerminals = async () => {
@@ -229,8 +221,7 @@ export default function TerminalsOverview() {
               : t
           )
         );
-        toast.success("Changes saved successfully!");
-        showToast(`Terminal "${trimmedName}" updated successfully.`);
+        toast.success(`Terminal "${trimmedName}" updated successfully.`);
       } else {
         // Create new terminal
         const created = await createTerminal({
@@ -244,14 +235,13 @@ export default function TerminalsOverview() {
           ...prev,
           { ...created, routes: [] },
         ]);
-        toast.success("Changes saved successfully!");
-        showToast(`Terminal "${trimmedName}" created successfully.`);
+        toast.success(`Terminal "${trimmedName}" created successfully.`);
       }
 
       handleCloseModal();
     } catch (err) {
       console.error('Error saving terminal:', err);
-      toast.error("Failed to update.");
+      toast.error(err.data?.error || err.message || 'Failed to update.');
       setFormError(
         err.data?.error || err.message || 'An error occurred while saving the terminal.'
       );
@@ -270,13 +260,11 @@ export default function TerminalsOverview() {
 
       // Optimistically remove from state
       setTerminals((prev) => prev.filter((t) => t.id !== terminalToDelete.id));
-      toast.success("Changes saved successfully!");
-      showToast(`Terminal "${terminalToDelete.name}" deleted successfully.`);
+      toast.success(`Terminal "${terminalToDelete.name}" deleted successfully.`);
       setTerminalToDelete(null);
     } catch (err) {
       console.error('Error deleting terminal:', err);
-      toast.error("Failed to update.");
-      showToast(err.message || 'Failed to delete terminal.', 'error');
+      toast.error(err.message || 'Failed to delete terminal.');
     } finally {
       setDeleting(false);
     }
@@ -294,27 +282,7 @@ export default function TerminalsOverview() {
 
   return (
     <div className="flex flex-col min-h-full p-4 sm:p-6 lg:p-10 max-w-6xl w-full mx-auto gap-6 font-['Plus_Jakarta_Sans',sans-serif]">
-      {/* Toast Notification */}
-      {localToast && (
-        <div
-          className={`fixed top-6 right-6 z-60 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-white border border-white/20 animate-fade-in ${
-            localToast.type === 'error'
-              ? 'bg-red-600'
-              : localToast.type === 'info'
-              ? 'bg-gray-700'
-              : 'bg-mengede-teal'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            {localToast.type === 'error'
-              ? 'error'
-              : localToast.type === 'info'
-              ? 'cancel'
-              : 'check_circle'}
-          </span>
-          <span className="text-[14px] font-medium">{localToast.message}</span>
-        </div>
-      )}
+
 
       {/* Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

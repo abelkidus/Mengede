@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import TerminalMap from './components/Map';
 import TerminalModal from './components/TerminalModal';
 import SubmitRouteForm from './components/SubmitRouteForm';
@@ -16,13 +16,7 @@ function MainMap() {
   const [selectedTerminal, setSelectedTerminal] = useState(null);
   const [activeRouteSelection, setActiveRouteSelection] = useState(null);
   const [isSubmittingRoute, setIsSubmittingRoute] = useState(false);
-  const [toastMessage, setToastMessage] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
-
-  const showToast = (message) => {
-    setToastMessage(message);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
 
   return (
     <main className="w-full h-[100dvh] overflow-hidden relative">
@@ -64,22 +58,9 @@ function MainMap() {
           onSuccess={() => {
             setIsSubmittingRoute(false);
             setSelectedTerminal(null);
-            showToast('Route submitted successfully! Pending admin approval.');
+            toast.success('Route submitted successfully! Pending admin approval.');
           }}
         />
-      )}
-
-      {/* Global Success Toast */}
-      {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-60 bg-mengede-teal text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20 animate-fade-in pointer-events-none">
-          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[18px]">check_circle</span>
-          </div>
-          <div>
-            <div className="font-bold text-[14px]">Success</div>
-            <div className="text-[12px] text-mengede-sage">{toastMessage}</div>
-          </div>
-        </div>
       )}
     </main>
   );
@@ -88,7 +69,28 @@ function MainMap() {
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-right" />
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#0d2926', /* Matches your dark green sidebar */
+            color: '#fff',
+            borderRadius: '8px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#4ADE80', /* Tailwind green-400 */
+              secondary: '#0d2926',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#F87171', /* Tailwind red-400 */
+              secondary: '#0d2926',
+            },
+          },
+        }}
+      />
       <Routes>
         {/* Main Map interface */}
         <Route path="/" element={<MainMap />} />
