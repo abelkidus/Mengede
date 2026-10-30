@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import Map, { Marker, NavigationControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import ConfirmModal from '../../components/ConfirmModal';
 import {
   fetchTerminals,
   createTerminal,
@@ -20,6 +21,7 @@ export default function TerminalsOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onAction: null });
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -68,7 +70,14 @@ export default function TerminalsOverview() {
   };
 
   const handleRemoveRoute = (index) => {
-    setRoutesList((prev) => prev.filter((_, i) => i !== index));
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Remove Route',
+      message: 'Are you sure you want to remove this route? This action cannot be undone.',
+      onAction: () => {
+        setRoutesList((prev) => prev.filter((_, i) => i !== index));
+      },
+    });
   };
 
   const handleSaveRoutes = async () => {
@@ -251,23 +260,31 @@ export default function TerminalsOverview() {
   };
 
   // Confirm delete
-  const handleDeleteConfirm = async () => {
-    if (!terminalToDelete) return;
+  const handleDeleteConfirm = (terminal) => {
+    const target = terminal || terminalToDelete;
+    if (!target) return;
 
-    try {
-      setDeleting(true);
-      await deleteTerminal(terminalToDelete.id);
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete Terminal',
+      message: 'Are you sure you want to delete this terminal? This action cannot be undone.',
+      onAction: async () => {
+        try {
+          setDeleting(true);
+          await deleteTerminal(target.id);
 
-      // Optimistically remove from state
-      setTerminals((prev) => prev.filter((t) => t.id !== terminalToDelete.id));
-      toast.success(`Terminal "${terminalToDelete.name}" deleted successfully.`);
-      setTerminalToDelete(null);
-    } catch (err) {
-      console.error('Error deleting terminal:', err);
-      toast.error(err.message || 'Failed to delete terminal.');
-    } finally {
-      setDeleting(false);
-    }
+          // Optimistically remove from state
+          setTerminals((prev) => prev.filter((t) => t.id !== target.id));
+          toast.success(`Terminal "${target.name}" deleted successfully.`);
+          setTerminalToDelete(null);
+        } catch (err) {
+          console.error('Error deleting terminal:', err);
+          toast.error(err.message || 'Failed to delete terminal.');
+        } finally {
+          setDeleting(false);
+        }
+      },
+    });
   };
 
   // Filter terminals by search
@@ -488,7 +505,7 @@ export default function TerminalsOverview() {
                           {/* Delete Action Button */}
                           <button
                             type="button"
-                            onClick={() => setTerminalToDelete(terminal)}
+                            onClick={() => handleDeleteConfirm(terminal)}
                             title="Delete"
                             aria-label={`Delete ${terminal.name}`}
                             className="p-2 rounded-md hover:bg-red-50 text-red-600 transition-colors cursor-pointer border border-red-100 hover:border-red-300 shadow-xs"
@@ -740,60 +757,6 @@ export default function TerminalsOverview() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {terminalToDelete && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => !deleting && setTerminalToDelete(null)}
-        >
-          <div
-            className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 flex flex-col gap-5 animate-scale-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[26px]">warning</span>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-bold text-mengede-dark">
-                Delete Terminal?
-              </h3>
-              <p className="text-[13px] text-gray-600 mt-1.5 leading-relaxed">
-                Are you sure you want to delete{' '}
-                <strong className="text-mengede-dark">"{terminalToDelete.name}"</strong>?
-                This action is permanent and will automatically remove all associated routes
-                connected to this terminal.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => setTerminalToDelete(null)}
-                disabled={deleting}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-[13px] font-semibold hover:bg-gray-50 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteConfirm}
-                disabled={deleting}
-                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[13px] font-semibold shadow-md active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {deleting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <span>Delete Terminal</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Routes Management Modal */}
       {selectedTerminalRoutes && (
         <div
@@ -933,6 +896,17 @@ export default function TerminalsOverview() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+        onConfirm={() => {
+          confirmConfig.onAction();
+          setConfirmConfig({ ...confirmConfig, isOpen: false });
+        }}
+      />
     </div>
   );
 }
