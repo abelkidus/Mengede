@@ -600,6 +600,13 @@ export default function TerminalMap({
           </Source>
         )}
 
+        {/* Terminal Routes Network Geometry */}
+        {activeRouteGeoJSON && (
+          <Source id="terminal-routes" type="geojson" data={activeRouteGeoJSON}>
+            <Layer id="route-line-base" type="line" />
+          </Source>
+        )}
+
         {/* Destination Marker from Geocoding */}
         {routeDetails?.destinationCoords && (
           <Marker
