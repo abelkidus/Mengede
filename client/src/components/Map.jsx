@@ -17,6 +17,21 @@ const INITIAL_VIEW_STATE = {
   bearing: 0,
 };
 
+const routeLayerStyle = {
+  id: 'route-line',
+  type: 'line',
+  layout: {
+    'line-join': 'round',
+    'line-cap': 'round',
+  },
+  paint: {
+    'line-color': '#10b981', /* Tailwind emerald-500 to match your theme */
+    'line-width': 4,
+    'line-opacity': 0.8,
+    'line-dasharray': [2, 2], /* Optional: creates a dashed line effect. Remove if you prefer a solid line. */
+  },
+};
+
 export default function TerminalMap({
   onSelectTerminal,
   selectedTerminal,
@@ -603,7 +618,7 @@ export default function TerminalMap({
         {/* Terminal Routes Network Geometry */}
         {activeRouteGeoJSON && (
           <Source id="terminal-routes" type="geojson" data={activeRouteGeoJSON}>
-            <Layer id="route-line-base" type="line" />
+            <Layer {...routeLayerStyle} />
           </Source>
         )}
 
