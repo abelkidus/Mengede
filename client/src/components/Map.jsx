@@ -4,6 +4,7 @@ import { Source, Layer } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../utils/distance';
 import { fetchTerminals } from '../services/api';
+import { generateRouteGeoJSON } from '../utils/routeUtils';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -51,6 +52,7 @@ export default function TerminalMap({
 
   // Route geometry & driving directions state
   const [routeGeoJSON, setRouteGeoJSON] = useState(null);
+  const [activeRouteGeoJSON, setActiveRouteGeoJSON] = useState(null);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState(null);
   const [routeDetails, setRouteDetails] = useState(null);
@@ -58,9 +60,18 @@ export default function TerminalMap({
   const handleClearRoute = () => {
     setActiveRouteSelection(null);
     setRouteGeoJSON(null);
+    setActiveRouteGeoJSON(null);
     setRouteDetails(null);
     setRouteError(null);
   };
+
+  const handleClosePopup = () => {
+    if (onSelectTerminal) {
+      onSelectTerminal(null);
+    }
+    setActiveRouteGeoJSON(null);
+  };
+  const handleClearSelection = handleClosePopup;
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
   const mapRef = useRef(null);
@@ -279,6 +290,10 @@ export default function TerminalMap({
 
   const handleTerminalClick = (terminal) => {
     if (!terminal) return;
+    const clickedTerminal = terminal;
+    const allTerminals = terminals;
+    setActiveRouteGeoJSON(generateRouteGeoJSON(clickedTerminal, allTerminals));
+
     mapRef.current?.flyTo({
       center: [terminal.longitude, terminal.latitude],
       zoom: 15,
@@ -561,6 +576,7 @@ export default function TerminalMap({
         ]}
         minZoom={10}
         reuseMaps
+        onClick={handleClosePopup}
       >
         {/* Navigation / Map Controls on Right */}
         <NavigationControl position="bottom-right" showCompass={true} />
@@ -669,6 +685,7 @@ export default function TerminalMap({
             offset={[0, -25]}
             closeButton={false}
             closeOnClick={false}
+            onClose={handleClosePopup}
             className="mengede-popup"
           >
             <div className="p-1 font-['Plus_Jakarta_Sans']">
