@@ -1,12 +1,14 @@
+import { fetchDrivingRoute } from '../services/mapboxService.js';
+
 /**
- * Generates a GeoJSON FeatureCollection containing LineString features
+ * Generates a GeoJSON FeatureCollection containing driving route geometries
  * connecting an origin terminal to its destination terminals.
  *
  * @param {Object} originTerminal - The origin terminal object with routes and coordinates
  * @param {Array<Object>} allTerminals - Array of all terminal objects to search for destinations
- * @returns {Object|null} GeoJSON FeatureCollection, or null if arguments are missing or routes are empty
+ * @returns {Promise<Object|null>} GeoJSON FeatureCollection, or null if arguments are missing or routes are empty
  */
-export function generateRouteGeoJSON(originTerminal, allTerminals) {
+export async function generateRouteGeoJSON(originTerminal, allTerminals) {
   if (
     !originTerminal ||
     !allTerminals ||
@@ -18,10 +20,8 @@ export function generateRouteGeoJSON(originTerminal, allTerminals) {
     return null;
   }
 
-  const features = [];
-
-  for (const route of originTerminal.routes) {
-    if (!route) continue;
+  const promises = originTerminal.routes.map(async (route) => {
+    if (!route) return null;
 
     const destName =
       typeof route === 'string'
@@ -37,36 +37,46 @@ export function generateRouteGeoJSON(originTerminal, allTerminals) {
           terminal.name === route.destinationName)
     );
 
-    if (destinationTerminal) {
-      const originLng =
-        originTerminal.longitude !== undefined
-          ? originTerminal.longitude
-          : originTerminal.lng;
-      const originLat =
-        originTerminal.latitude !== undefined
-          ? originTerminal.latitude
-          : originTerminal.lat;
-      const destLng =
-        destinationTerminal.longitude !== undefined
-          ? destinationTerminal.longitude
-          : destinationTerminal.lng;
-      const destLat =
-        destinationTerminal.latitude !== undefined
-          ? destinationTerminal.latitude
-          : destinationTerminal.lat;
-
-      features.push({
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [originLng, originLat],
-            [destLng, destLat],
-          ],
-        },
-      });
+    if (!destinationTerminal) {
+      return null;
     }
-  }
+
+    const originLng =
+      originTerminal.longitude !== undefined
+        ? originTerminal.longitude
+        : originTerminal.lng;
+    const originLat =
+      originTerminal.latitude !== undefined
+        ? originTerminal.latitude
+        : originTerminal.lat;
+    const destLng =
+      destinationTerminal.longitude !== undefined
+        ? destinationTerminal.longitude
+        : destinationTerminal.lng;
+    const destLat =
+      destinationTerminal.latitude !== undefined
+        ? destinationTerminal.latitude
+        : destinationTerminal.lat;
+
+    const actualRouteGeometry = await fetchDrivingRoute(
+      originLng,
+      originLat,
+      destLng,
+      destLat
+    );
+
+    if (actualRouteGeometry) {
+      return {
+        type: 'Feature',
+        geometry: actualRouteGeometry,
+      };
+    }
+
+    return null;
+  });
+
+  const resolvedFeatures = await Promise.all(promises);
+  const features = resolvedFeatures.filter((feature) => feature !== null);
 
   return {
     type: 'FeatureCollection',
@@ -75,4 +85,3 @@ export function generateRouteGeoJSON(originTerminal, allTerminals) {
 }
 
 export default generateRouteGeoJSON;
-
