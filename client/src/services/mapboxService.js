@@ -9,16 +9,17 @@
  */
 export async function fetchDrivingRoute(originLng, originLat, destLng, destLat) {
   try {
-    if (
-      originLng === undefined || originLng === null ||
-      originLat === undefined || originLat === null ||
-      destLng === undefined || destLng === null ||
-      destLat === undefined || destLat === null
-    ) {
-      return null;
+    const safeOrigLng = Number(originLng);
+    const safeOrigLat = Number(originLat);
+    const safeDestLng = Number(destLng);
+    const safeDestLat = Number(destLat);
+
+    if (isNaN(safeOrigLng) || isNaN(safeOrigLat) || isNaN(safeDestLng) || isNaN(safeDestLat)) {
+      console.error("Mapbox Route Error: Invalid coordinates provided.", { originLng, originLat, destLng, destLat });
+      return null; // Fail gracefully so the fallback line can render
     }
 
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${originLng},${originLat};${destLng},${destLat}?geometries=geojson&access_token=${import.meta.env.VITE_MAPBOX_TOKEN}`;
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${safeOrigLng},${safeOrigLat};${safeDestLng},${safeDestLat}?geometries=geojson&access_token=${import.meta.env.VITE_MAPBOX_TOKEN}`;
 
     const response = await fetch(url);
     if (!response.ok) {

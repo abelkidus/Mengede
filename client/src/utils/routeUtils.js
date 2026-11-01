@@ -58,21 +58,32 @@ export async function generateRouteGeoJSON(originTerminal, allTerminals) {
         ? destinationTerminal.latitude
         : destinationTerminal.lat;
 
-    const actualRouteGeometry = await fetchDrivingRoute(
-      originLng,
-      originLat,
-      destLng,
-      destLat
-    );
-
-    if (actualRouteGeometry) {
-      return {
-        type: 'Feature',
-        geometry: actualRouteGeometry,
-      };
+    let actualRouteGeometry = null;
+    try {
+      actualRouteGeometry = await fetchDrivingRoute(
+        originLng,
+        originLat,
+        destLng,
+        destLat
+      );
+    } catch (err) {
+      console.error('Error fetching driving route in routeUtils:', err);
+      actualRouteGeometry = null;
     }
 
-    return null;
+    const geometry =
+      actualRouteGeometry || {
+        type: 'LineString',
+        coordinates: [
+          [originTerminal.lng ?? originLng, originTerminal.lat ?? originLat],
+          [destinationTerminal.lng ?? destLng, destinationTerminal.lat ?? destLat],
+        ],
+      };
+
+    return {
+      type: 'Feature',
+      geometry,
+    };
   });
 
   const resolvedFeatures = await Promise.all(promises);
