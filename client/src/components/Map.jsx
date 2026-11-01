@@ -303,11 +303,11 @@ export default function TerminalMap({
     };
   }, [showNearestTerminal, userLocation, terminals]);
 
-  const handleTerminalClick = (terminal) => {
+  const handleTerminalClick = async (terminal) => {
     if (!terminal) return;
     const clickedTerminal = terminal;
     const allTerminals = terminals;
-    setActiveRouteGeoJSON(generateRouteGeoJSON(clickedTerminal, allTerminals));
+    setActiveRouteGeoJSON(await generateRouteGeoJSON(clickedTerminal, allTerminals));
 
     mapRef.current?.flyTo({
       center: [terminal.longitude, terminal.latitude],
@@ -652,9 +652,9 @@ export default function TerminalMap({
               latitude={terminal.latitude}
               longitude={terminal.longitude}
               anchor="center"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.originalEvent.stopPropagation();
-                handleTerminalClick(terminal);
+                await handleTerminalClick(terminal);
               }}
             >
               <div
