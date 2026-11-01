@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Map, { Marker, NavigationControl, GeolocateControl, Popup } from 'react-map-gl/mapbox';
 import { Source, Layer } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import toast from 'react-hot-toast';
 import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../utils/distance';
 import { fetchTerminals } from '../services/api';
 import { generateRouteGeoJSON } from '../utils/routeUtils';
@@ -307,7 +308,15 @@ export default function TerminalMap({
     if (!terminal) return;
     const clickedTerminal = terminal;
     const allTerminals = terminals;
-    setActiveRouteGeoJSON(await generateRouteGeoJSON(clickedTerminal, allTerminals));
+
+    const toastId = toast.loading('Calculating routes...');
+    try {
+      setActiveRouteGeoJSON(await generateRouteGeoJSON(clickedTerminal, allTerminals));
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error('Failed to load routes:', err);
+      toast.error('Failed to load routes', { id: toastId });
+    }
 
     mapRef.current?.flyTo({
       center: [terminal.longitude, terminal.latitude],
