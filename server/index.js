@@ -6,11 +6,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const authMiddleware = require('./middleware/authMiddleware');
-const {
-  globalLimiter,
-  loginLimiter,
-  submissionLimiter,
-} = require('./middleware/rateLimiters');
+const { globalLimiter, loginLimiter } = require('./src/middleware/rateLimiter');
+const { submissionLimiter } = require('./middleware/rateLimiters');
+const authRoutes = require('./src/routes/authRoutes');
 const {
   validate,
   loginSchema,
@@ -44,6 +42,8 @@ app.use(express.json({ limit: '10kb' }));
 
 // 1. Global rate limiter for all /api endpoints
 app.use('/api', globalLimiter);
+app.use('/api', authRoutes);
+app.use(authRoutes);
 
 // Basic health check route
 app.get('/', (req, res) => {
