@@ -358,17 +358,22 @@ export default function TerminalMap({
           duration: 1200,
         });
       },
-      (err) => {
+      (error) => {
         setIsLocating(false);
-        let message = 'Unable to retrieve your location.';
-        if (err.code === 1) {
-          message = 'Location permission denied. Please allow location access in your browser settings.';
-        } else if (err.code === 3) {
-          message = 'Location request timed out. Please check your connection and try again.';
-        } else if (err.code === 2) {
-          message = 'Location unavailable. Your position could not be determined.';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Location access denied. Please enable GPS permissions in your browser settings.", { id: toastId });
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error("Location information is currently unavailable.", { id: toastId });
+            break;
+          case error.TIMEOUT:
+            toast.error("The location request timed out. Please try again.", { id: toastId });
+            break;
+          default:
+            toast.error("An unknown error occurred while fetching location.", { id: toastId });
+            break;
         }
-        setLocationError(message);
       },
       {
         enableHighAccuracy: true,
