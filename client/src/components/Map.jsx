@@ -339,6 +339,8 @@ export default function TerminalMap({
     setIsLocating(true);
     setLocationError(null);
 
+    const toastId = toast.loading("Finding your location...");
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -346,6 +348,9 @@ export default function TerminalMap({
         setUserLocation(newLocation);
         setShowNearestTerminal(true);
         setIsLocating(false);
+
+        toast.dismiss(toastId);
+        toast.success("Location found!");
 
         mapRef.current?.flyTo({
           center: [newLocation.longitude, newLocation.latitude],
