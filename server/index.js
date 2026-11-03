@@ -24,6 +24,7 @@ const {
 const terminalRoutes = require('./routes/terminalRoutes');
 
 const app = express();
+app.set('trust proxy', 1);
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
