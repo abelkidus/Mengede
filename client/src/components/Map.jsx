@@ -332,7 +332,7 @@ export default function TerminalMap({
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser.');
+      toast.error("Your browser does not support geolocation.");
       return;
     }
 
