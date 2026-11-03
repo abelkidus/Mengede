@@ -347,19 +347,21 @@ export default function TerminalMap({
         const newLocation = { latitude, longitude };
         setUserLocation(newLocation);
         setShowNearestTerminal(true);
-        setIsLocating(false);
 
         toast.dismiss(toastId);
         toast.success("Location found!");
 
-        mapRef.current?.flyTo({
-          center: [newLocation.longitude, newLocation.latitude],
-          zoom: 14,
-          duration: 1200,
-        });
+        if (latitude && longitude) {
+          mapRef.current?.flyTo({
+            center: [newLocation.longitude, newLocation.latitude],
+            zoom: 14,
+            duration: 1200,
+          });
+        }
+
+        setIsLocating(false);
       },
       (error) => {
-        setIsLocating(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
             toast.error("Location access denied. Please enable GPS permissions in your browser settings.", { id: toastId });
@@ -374,6 +376,8 @@ export default function TerminalMap({
             toast.error("An unknown error occurred while fetching location.", { id: toastId });
             break;
         }
+
+        setIsLocating(false);
       },
       {
         enableHighAccuracy: true,
