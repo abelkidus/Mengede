@@ -148,6 +148,7 @@ export default function TerminalsOverview() {
     e.stopPropagation?.();
     if (!searchQuery.trim()) return;
 
+    setShowSuggestions(false);
     setIsSearching(true);
     const results = await searchAddisLocation(searchQuery);
     setIsSearching(false);
@@ -673,7 +674,7 @@ export default function TerminalsOverview() {
                   </span>
                 </div>
 
-                <div className="flex gap-2 mb-3">
+                <div className="relative flex gap-2 mb-3">
                   <input 
                     type="text" 
                     placeholder="Search location (e.g. Piyasa, Bole)..." 
@@ -682,6 +683,19 @@ export default function TerminalsOverview() {
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(e); } }}
                     className="flex-1 p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 focus:outline-none focus:border-[#0d2926]"
                   />
+                  {showSuggestions && suggestions.length > 0 && (
+                    <ul className="absolute z-[100] top-full left-0 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {suggestions.map((feature) => (
+                        <li 
+                          key={feature.id} 
+                          onClick={() => handleSelectSuggestion(feature)}
+                          className="px-4 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#0d2926] cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-none"
+                        >
+                          {feature.place_name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <button 
                     type="button" 
                     onClick={handleSearch}
