@@ -126,6 +126,22 @@ export default function TerminalsOverview() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (searchQuery.trim().length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      const results = await searchAddisLocation(searchQuery);
+      setSuggestions(results);
+      setShowSuggestions(true);
+    }, 400); // Wait 400ms after the user stops typing
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
