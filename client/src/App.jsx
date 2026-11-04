@@ -5,7 +5,7 @@ import TerminalMap from './components/Map';
 import TerminalModal from './components/TerminalModal';
 import SubmitRouteForm from './components/SubmitRouteForm';
 import AdminDashboard from './components/AdminDashboard';
-import TerminalsOverview from './components/TerminalsOverview';
+import TerminalsOverview from './pages/admin/TerminalsOverview';
 import ActionHistory from './components/ActionHistory';
 import AdminLayout from './components/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
