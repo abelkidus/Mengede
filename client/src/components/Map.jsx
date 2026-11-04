@@ -20,7 +20,6 @@ const INITIAL_VIEW_STATE = {
 export default function TerminalMap({
   onSelectTerminal,
   selectedTerminal,
-  onOpenAdmin,
   userLocation: propUserLocation,
   onUserLocationChange,
   activeRouteSelection: propActiveRouteSelection,
@@ -409,19 +408,6 @@ export default function TerminalMap({
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
             )}
-          </div>
-
-          {/* Profile / Admin Moderation Button */}
-          <div className="pointer-events-auto shrink-0">
-            <button
-              type="button"
-              onClick={onOpenAdmin}
-              className="w-12 h-12 rounded-full bg-mengede-primary flex items-center justify-center shadow-[0_4px_16px_rgba(42,131,95,0.35)] text-white hover:opacity-90 active:scale-95 transition-all border-2 border-white/80 cursor-pointer"
-              aria-label="Open Admin Moderation Hub"
-              title="Admin Moderation Hub"
-            >
-              <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
-            </button>
           </div>
         </div>
 
