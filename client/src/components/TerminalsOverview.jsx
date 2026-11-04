@@ -129,6 +129,7 @@ export default function TerminalsOverview() {
 
   const handleSearch = async (e) => {
     e.preventDefault();
+    e.stopPropagation?.();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
@@ -631,14 +632,27 @@ export default function TerminalsOverview() {
                   </span>
                 </div>
 
+                <form onSubmit={handleSearch} className="flex gap-2 mb-3">
+                  <input 
+                    type="text" 
+                    placeholder="Search location (e.g. Piyasa, Bole)..." 
+                    value={searchQuery} 
+                    onChange={(e) => setSearchQuery(e.target.value)} 
+                    className="flex-1 p-2 border rounded text-sm dark:bg-gray-800 dark:border-gray-700"
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={isSearching} 
+                    className="px-4 py-2 bg-[#0d2926] text-white rounded text-sm hover:bg-opacity-90 disabled:opacity-50"
+                  >
+                    {isSearching ? 'Searching...' : 'Search'}
+                  </button>
+                </form>
+
                 <div className="w-full h-52 rounded-2xl overflow-hidden border border-gray-200/90 shadow-inner relative bg-gray-100">
                   <Map
                     ref={miniMapRef}
-                    initialViewState={{
-                      latitude: validLat,
-                      longitude: validLng,
-                      zoom: 14,
-                    }}
+                    initialViewState={viewState}
                     mapboxAccessToken={MAPBOX_TOKEN}
                     mapStyle="mapbox://styles/mapbox/light-v11"
                     style={{ width: '100%', height: '100%' }}
@@ -658,7 +672,7 @@ export default function TerminalsOverview() {
                     <Marker
                       latitude={validLat}
                       longitude={validLng}
-                      draggable={!submitting}
+                      draggable={true}
                       onDragEnd={handleMarkerDragEnd}
                       anchor="bottom"
                     >
