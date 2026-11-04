@@ -80,36 +80,8 @@ export default function ActionHistory() {
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-[#EEFCFA] text-mengede-dark font-['Plus_Jakarta_Sans',sans-serif] antialiased">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-xl border-b border-gray-200/80 flex items-center justify-between px-6 lg:px-10 shadow-xs">
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F7F4] text-mengede-teal text-[12px] font-semibold border border-mengede-sage/30">
-          <span className="material-symbols-outlined text-[16px] text-mengede-primary">
-            history
-          </span>
-          <span>Decision Audit Trail</span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={loadHistory}
-            disabled={loading}
-            title="Refresh history"
-            className="w-9 h-9 rounded-full flex items-center justify-center text-mengede-dark hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50"
-          >
-            <span
-              className={`material-symbols-outlined text-[20px] ${
-                loading ? 'animate-spin' : ''
-              }`}
-            >
-              refresh
-            </span>
-          </button>
-        </div>
-      </header>
-
       {/* Main Container */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-10 max-w-6xl w-full mx-auto flex flex-col gap-6">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 pt-8 sm:pt-10 max-w-6xl w-full mx-auto flex flex-col gap-6">
         {/* Page Heading & Stats */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
