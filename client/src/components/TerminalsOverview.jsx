@@ -175,6 +175,31 @@ export default function TerminalsOverview() {
     }
   };
 
+  const handleSelectSuggestion = (feature) => {
+    const [lng, lat] = feature.center;
+
+    setSearchQuery(feature.place_name);
+    setSuggestions([]);
+    setShowSuggestions(false);
+
+    setViewState((prev) => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng,
+      zoom: 14,
+    }));
+    miniMapRef.current?.flyTo({
+      center: [lng, lat],
+      zoom: 14,
+      duration: 800,
+    });
+    setFormData((prev) => ({
+      ...prev,
+      latitude: typeof lat === 'number' ? lat.toFixed(6) : lat.toString(),
+      longitude: typeof lng === 'number' ? lng.toFixed(6) : lng.toString(),
+    }));
+  };
+
   const currentLat = parseFloat(formData.latitude);
   const currentLng = parseFloat(formData.longitude);
   const validLat =
