@@ -12,6 +12,7 @@ import {
   submitRoute,
   updateTerminalRoutes,
 } from '../services/api';
+import { searchAddisLocation } from '../services/mapboxService';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const DEFAULT_CENTER = { latitude: 9.0320, longitude: 38.7480 };
@@ -20,7 +21,7 @@ export default function TerminalsOverview() {
   const [terminals, setTerminals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filterQuery, setFilterQuery] = useState('');
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onAction: null });
 
   // Modal states
@@ -117,6 +118,45 @@ export default function TerminalsOverview() {
   }, []);
 
   const miniMapRef = useRef(null);
+
+  const [viewState, setViewState] = useState({
+    latitude: DEFAULT_CENTER.latitude,
+    longitude: DEFAULT_CENTER.longitude,
+    zoom: 14,
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    const results = await searchAddisLocation(searchQuery);
+    setIsSearching(false);
+
+    if (results && results.length > 0) {
+      const [lng, lat] = results[0].center;
+      setViewState((prev) => ({
+        ...prev,
+        latitude: lat,
+        longitude: lng,
+        zoom: 14,
+      }));
+      miniMapRef.current?.flyTo({
+        center: [lng, lat],
+        zoom: 14,
+        duration: 800,
+      });
+      setFormData((prev) => ({
+        ...prev,
+        latitude: typeof lat === 'number' ? lat.toFixed(6) : lat.toString(),
+        longitude: typeof lng === 'number' ? lng.toFixed(6) : lng.toString(),
+      }));
+    } else {
+      toast.error("Location not found. Try a different name.");
+    }
+  };
 
   const currentLat = parseFloat(formData.latitude);
   const currentLng = parseFloat(formData.longitude);
@@ -289,7 +329,7 @@ export default function TerminalsOverview() {
 
   // Filter terminals by search
   const filteredTerminals = terminals.filter((t) =>
-    t.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
+    t.name.toLowerCase().includes(filterQuery.toLowerCase().trim())
   );
 
   const totalRoutesCount = terminals.reduce(
@@ -360,15 +400,15 @@ export default function TerminalsOverview() {
         </span>
         <input
           type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={filterQuery}
+          onChange={(e) => setFilterQuery(e.target.value)}
           placeholder="Search terminals by name..."
           className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200/80 rounded-2xl text-[14px] text-mengede-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mengede-primary shadow-xs transition"
         />
-        {searchQuery && (
+        {filterQuery && (
           <button
             type="button"
-            onClick={() => setSearchQuery('')}
+            onClick={() => setFilterQuery('')}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
@@ -410,17 +450,17 @@ export default function TerminalsOverview() {
             <span className="material-symbols-outlined text-[28px]">wrong_location</span>
           </div>
           <h3 className="text-lg font-bold text-mengede-dark">
-            {searchQuery ? 'No Matching Terminals' : 'No Terminals Available'}
+            {filterQuery ? 'No Matching Terminals' : 'No Terminals Available'}
           </h3>
           <p className="text-[14px] text-mengede-dark/60 max-w-sm mt-1">
-            {searchQuery
-              ? `No terminal names match "${searchQuery}". Try a different keyword.`
+            {filterQuery
+              ? `No terminal names match "${filterQuery}". Try a different keyword.`
               : 'Add your first transportation hub to begin managing urban transit routes.'}
           </p>
-          {searchQuery && (
+          {filterQuery && (
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
+              onClick={() => setFilterQuery('')}
               className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-[13px] font-semibold text-mengede-dark transition cursor-pointer"
             >
               Clear Search
