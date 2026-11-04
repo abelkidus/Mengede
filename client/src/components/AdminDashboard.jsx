@@ -5,7 +5,7 @@ import {
   bulkUpdateRouteStatus,
 } from '../services/api';
 
-export default function AdminDashboard({ onBackToMap }) {
+export default function AdminDashboard() {
   const [pendingRoutes, setPendingRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -216,72 +216,8 @@ export default function AdminDashboard({ onBackToMap }) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-[100dvh]">
-        {/* Top Header */}
-        <header className="sticky top-0 z-30 h-16 bg-white/90 backdrop-blur-xl border-b border-gray-200/80 flex items-center justify-between px-4 sm:px-6 lg:px-10 shadow-xs">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onBackToMap}
-              className="lg:hidden p-2 rounded-xl text-mengede-dark hover:bg-gray-100 flex items-center gap-1.5 text-[14px] font-semibold"
-            >
-              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-              <span>Map</span>
-            </button>
-
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F7F4] text-mengede-teal text-[12px] font-semibold border border-mengede-sage/30">
-              <span className="material-symbols-outlined text-[16px] text-mengede-primary">
-                verified_user
-              </span>
-              <span>Route Safety & Verification Mode</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={fetchPendingRoutes}
-              disabled={loading}
-              title="Refresh queue"
-              className="w-9 h-9 rounded-full flex items-center justify-center text-mengede-dark hover:bg-gray-100 transition-colors cursor-pointer"
-            >
-              <span
-                className={`material-symbols-outlined text-[20px] ${
-                  loading ? 'animate-spin' : ''
-                }`}
-              >
-                refresh
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onBackToMap}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-mengede-teal/10 hover:bg-mengede-teal/20 text-mengede-teal text-[13px] font-semibold transition-colors cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px]">map</span>
-              <span>View Map</span>
-            </button>
-
-            <div className="h-6 w-px bg-gray-200" />
-
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <span className="text-[13px] font-bold text-mengede-dark block leading-tight">
-                  Route Examiner
-                </span>
-                <span className="text-[11px] text-mengede-dark/60 block">
-                  Urban Transit Desk
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-mengede-dark text-white flex items-center justify-center shadow-xs">
-                <span className="material-symbols-outlined text-[18px]">person</span>
-              </div>
-            </div>
-          </div>
-        </header>
-
         {/* Dashboard Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-10 pb-28 max-w-6xl w-full mx-auto flex flex-col gap-6">
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 pt-8 sm:pt-10 pb-28 max-w-6xl w-full mx-auto flex flex-col gap-6">
           {/* Page Heading */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
