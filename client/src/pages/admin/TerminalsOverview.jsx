@@ -632,22 +632,24 @@ export default function TerminalsOverview() {
                   </span>
                 </div>
 
-                <form onSubmit={handleSearch} className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-3">
                   <input 
                     type="text" 
                     placeholder="Search location (e.g. Piyasa, Bole)..." 
                     value={searchQuery} 
                     onChange={(e) => setSearchQuery(e.target.value)} 
-                    className="flex-1 p-2 border rounded text-sm dark:bg-gray-800 dark:border-gray-700"
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(e); } }}
+                    className="flex-1 p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 focus:outline-none focus:border-[#0d2926]"
                   />
                   <button 
-                    type="submit" 
+                    type="button" 
+                    onClick={handleSearch}
                     disabled={isSearching} 
                     className="px-4 py-2 bg-[#0d2926] text-white rounded text-sm hover:bg-opacity-90 disabled:opacity-50"
                   >
                     {isSearching ? 'Searching...' : 'Search'}
                   </button>
-                </form>
+                </div>
 
                 <div className="w-full h-52 rounded-2xl overflow-hidden border border-gray-200/90 shadow-inner relative bg-gray-100">
                   <Map
