@@ -10,7 +10,7 @@ export async function searchAddisLocation(query) {
   }
 
   try {
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?proximity=38.7468,9.0227&access_token=${import.meta.env.VITE_MAPBOX_TOKEN}`;
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?proximity=38.7468,9.0227&country=et&bbox=38.3,8.6,39.2,9.3&access_token=${import.meta.env.VITE_MAPBOX_TOKEN}`;
 
     const response = await fetch(url);
     if (!response.ok) {
