@@ -5,7 +5,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import toast from 'react-hot-toast';
 import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../utils/distance';
 import { fetchTerminals } from '../services/api';
-import { generateRouteGeoJSON } from '../utils/routeUtils';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -16,21 +15,6 @@ const INITIAL_VIEW_STATE = {
   zoom: 12.8,
   pitch: 0,
   bearing: 0,
-};
-
-const routeLayerStyle = {
-  id: 'route-line',
-  type: 'line',
-  layout: {
-    'line-join': 'round',
-    'line-cap': 'round',
-  },
-  paint: {
-    'line-color': '#10b981', /* Tailwind emerald-500 to match your theme */
-    'line-width': 4,
-    'line-opacity': 0.8,
-    'line-dasharray': [2, 2], /* Optional: creates a dashed line effect. Remove if you prefer a solid line. */
-  },
 };
 
 export default function TerminalMap({
@@ -68,7 +52,6 @@ export default function TerminalMap({
 
   // Route geometry & driving directions state
   const [routeGeoJSON, setRouteGeoJSON] = useState(null);
-  const [activeRouteGeoJSON, setActiveRouteGeoJSON] = useState(null);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState(null);
   const [routeDetails, setRouteDetails] = useState(null);
@@ -76,7 +59,6 @@ export default function TerminalMap({
   const handleClearRoute = () => {
     setActiveRouteSelection(null);
     setRouteGeoJSON(null);
-    setActiveRouteGeoJSON(null);
     setRouteDetails(null);
     setRouteError(null);
   };
@@ -85,7 +67,6 @@ export default function TerminalMap({
     if (onSelectTerminal) {
       onSelectTerminal(null);
     }
-    setActiveRouteGeoJSON(null);
   };
   const handleClearSelection = handleClosePopup;
   const [isLocating, setIsLocating] = useState(false);
@@ -304,20 +285,8 @@ export default function TerminalMap({
     };
   }, [showNearestTerminal, userLocation, terminals]);
 
-  const handleTerminalClick = async (terminal) => {
+  const handleTerminalClick = (terminal) => {
     if (!terminal) return;
-    const clickedTerminal = terminal;
-    const allTerminals = terminals;
-
-    const toastId = toast.loading('Calculating routes...');
-    try {
-      setActiveRouteGeoJSON(await generateRouteGeoJSON(clickedTerminal, allTerminals));
-      toast.dismiss(toastId);
-    } catch (err) {
-      console.error('Failed to load routes:', err);
-      toast.error('Failed to load routes', { id: toastId });
-    }
-
     mapRef.current?.flyTo({
       center: [terminal.longitude, terminal.latitude],
       zoom: 15,
@@ -638,13 +607,6 @@ export default function TerminalMap({
           </Source>
         )}
 
-        {/* Terminal Routes Network Geometry */}
-        {activeRouteGeoJSON && (
-          <Source id="terminal-routes" type="geojson" data={activeRouteGeoJSON}>
-            <Layer {...routeLayerStyle} />
-          </Source>
-        )}
-
         {/* Destination Marker from Geocoding */}
         {routeDetails?.destinationCoords && (
           <Marker
@@ -675,9 +637,9 @@ export default function TerminalMap({
               latitude={terminal.latitude}
               longitude={terminal.longitude}
               anchor="center"
-              onClick={async (e) => {
+              onClick={(e) => {
                 e.originalEvent.stopPropagation();
-                await handleTerminalClick(terminal);
+                handleTerminalClick(terminal);
               }}
             >
               <div
