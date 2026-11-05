@@ -7,7 +7,7 @@ A modern, full-stack transit navigation and administration platform for Addis Ab
 
 ### 📚 Project Resources
 * **Project Documentation:** [View Project Report](https://drive.google.com/file/d/1ApSqd5fthc4w3lIzHg6O7KA-i4-exvVs/view?usp=drive_link)
-* **Video Demonstration:** [Watch Demo](https://drive.google.com/file/d/1XpZqd5fthc4w3lIzHg6O7KA-i4-exvVs/vew?usp=sharing)
+* **Video Demonstration:** [Watch Demo](https://drive.google.com/file/d/1YNSm03nFaN4UnU95dPotv-5hpBhg3YDU/view?usp=sharing)
 
 
 ### Website Link
