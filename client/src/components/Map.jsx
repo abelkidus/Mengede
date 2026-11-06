@@ -7,8 +7,6 @@ import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../uti
 import { fetchTerminals } from '../services/api';
 import { getRoute } from '../services/mapboxService';
 
-export { getRoute } from '../services/mapboxService';
-
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 // Addis Ababa coordinates

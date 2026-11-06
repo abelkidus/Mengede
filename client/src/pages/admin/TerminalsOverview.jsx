@@ -201,16 +201,8 @@ export default function TerminalsOverview() {
     }));
   };
 
-  const currentLat = parseFloat(formData.latitude);
-  const currentLng = parseFloat(formData.longitude);
-  const validLat =
-    !isNaN(currentLat) && currentLat >= -90 && currentLat <= 90
-      ? currentLat
-      : DEFAULT_CENTER.latitude;
-  const validLng =
-    !isNaN(currentLng) && currentLng >= -180 && currentLng <= 180
-      ? currentLng
-      : DEFAULT_CENTER.longitude;
+  const defaultLat = DEFAULT_CENTER.latitude;
+  const defaultLng = DEFAULT_CENTER.longitude;
 
   const handleMarkerDragEnd = (event) => {
     const { lng, lat } = event.lngLat;
@@ -222,19 +214,22 @@ export default function TerminalsOverview() {
   };
 
   useEffect(() => {
-    if (modalOpen && miniMapRef.current) {
-      const lat = parseFloat(formData.latitude);
-      const lng = parseFloat(formData.longitude);
-      const targetLat =
-        !isNaN(lat) && lat >= -90 && lat <= 90 ? lat : DEFAULT_CENTER.latitude;
-      const targetLng =
-        !isNaN(lng) && lng >= -180 && lng <= 180 ? lng : DEFAULT_CENTER.longitude;
-      miniMapRef.current.resize();
-      miniMapRef.current.flyTo({
-        center: [targetLng, targetLat],
+    if (modalOpen) {
+      const lat = parseFloat(formData.latitude) || defaultLat;
+      const lng = parseFloat(formData.longitude) || defaultLng;
+      setViewState({
+        latitude: lat,
+        longitude: lng,
         zoom: 14,
-        duration: 500,
       });
+      if (miniMapRef.current) {
+        miniMapRef.current.resize();
+        miniMapRef.current.flyTo({
+          center: [lng, lat],
+          zoom: 14,
+          duration: 500,
+        });
+      }
     }
   }, [modalOpen, editingTerminal]);
 
@@ -243,8 +238,13 @@ export default function TerminalsOverview() {
     setEditingTerminal(null);
     setFormData({
       name: '',
-      latitude: DEFAULT_CENTER.latitude.toString(),
-      longitude: DEFAULT_CENTER.longitude.toString(),
+      latitude: defaultLat.toString(),
+      longitude: defaultLng.toString(),
+    });
+    setViewState({
+      latitude: defaultLat,
+      longitude: defaultLng,
+      zoom: 14,
     });
     setFormError(null);
     setModalOpen(true);
@@ -253,10 +253,17 @@ export default function TerminalsOverview() {
   // Open modal for Edit
   const handleOpenEdit = (terminal) => {
     setEditingTerminal(terminal);
+    const lat = terminal.latitude !== undefined ? terminal.latitude.toString() : defaultLat.toString();
+    const lng = terminal.longitude !== undefined ? terminal.longitude.toString() : defaultLng.toString();
     setFormData({
       name: terminal.name,
-      latitude: terminal.latitude.toString(),
-      longitude: terminal.longitude.toString(),
+      latitude: lat,
+      longitude: lng,
+    });
+    setViewState({
+      latitude: parseFloat(lat) || defaultLat,
+      longitude: parseFloat(lng) || defaultLng,
+      zoom: 14,
     });
     setFormError(null);
     setModalOpen(true);
@@ -709,7 +716,11 @@ export default function TerminalsOverview() {
                 <div className="w-full h-52 rounded-2xl overflow-hidden border border-gray-200/90 shadow-inner relative bg-gray-100">
                   <Map
                     ref={miniMapRef}
-                    initialViewState={viewState}
+                    initialViewState={{
+                      longitude: parseFloat(formData.longitude) || defaultLng,
+                      latitude: parseFloat(formData.latitude) || defaultLat,
+                      zoom: 14,
+                    }}
                     mapboxAccessToken={MAPBOX_TOKEN}
                     mapStyle="mapbox://styles/mapbox/light-v11"
                     style={{ width: '100%', height: '100%' }}
@@ -727,8 +738,8 @@ export default function TerminalsOverview() {
                     <NavigationControl position="bottom-right" showCompass={false} />
 
                     <Marker
-                      latitude={validLat}
-                      longitude={validLng}
+                      latitude={parseFloat(formData.latitude) || defaultLat}
+                      longitude={parseFloat(formData.longitude) || defaultLng}
                       draggable={true}
                       onDragEnd={handleMarkerDragEnd}
                       anchor="bottom"
