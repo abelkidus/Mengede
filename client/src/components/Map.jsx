@@ -5,6 +5,9 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import toast from 'react-hot-toast';
 import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../utils/distance';
 import { fetchTerminals } from '../services/api';
+import { getRoute } from '../services/mapboxService';
+
+export { getRoute } from '../services/mapboxService';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -139,21 +142,27 @@ export default function TerminalMap({
         if (!isMounted) return;
 
         // 2. Mapbox Directions API (driving profile) between origin and destination
-        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${originLongitude},${originLatitude};${destLng},${destLat}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
-
-        const dirRes = await fetch(directionsUrl, { signal: abortController.signal });
-        if (!dirRes.ok) {
-          throw new Error(`Directions failed with status ${dirRes.status}`);
-        }
-
-        const dirData = await dirRes.json();
-        if (!dirData.routes || dirData.routes.length === 0) {
-          throw new Error(`No driving route found to "${destinationName}"`);
-        }
-
-        const primaryRoute = dirData.routes[0];
+        const primaryRoute = await getRoute(
+          [originLongitude, originLatitude],
+          [destLng, destLat]
+        );
 
         if (!isMounted) return;
+
+        if (!primaryRoute) {
+          // Gracefully handle null route: skip route line rendering without breaking the map
+          setRouteGeoJSON(null);
+          setRouteDetails(null);
+          toast.error("Unable to calculate driving route. Skipping route display.", { id: 'route-error' });
+          if (mapRef.current) {
+            mapRef.current.flyTo({
+              center: [originLongitude, originLatitude],
+              zoom: 14.5,
+              duration: 800,
+            });
+          }
+          return;
+        }
 
         const geoJsonFeature = {
           type: 'Feature',
