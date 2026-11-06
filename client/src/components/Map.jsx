@@ -130,33 +130,17 @@ export default function TerminalMap({
             (activeRouteSelection.destinationTerminalId && t.id === activeRouteSelection.destinationTerminalId)
         );
 
-        let destLng = destination?.longitude ? parseFloat(destination.longitude) : null;
-        let destLat = destination?.latitude ? parseFloat(destination.latitude) : null;
-
-        if (destLng === null || destLat === null || isNaN(destLng) || isNaN(destLat)) {
-          // Fallback: Mapbox Geocoding API if not found directly in loaded terminals
-          const query = encodeURIComponent(`${destinationName.trim()}, Addis Ababa`);
-          const geocodingUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${MAPBOX_TOKEN}&proximity=${originLongitude},${originLatitude}&limit=1`;
-
-          const geoRes = await fetch(geocodingUrl, { signal: abortController.signal });
-          if (!geoRes.ok) {
-            throw new Error(`Geocoding failed with status ${geoRes.status}`);
-          }
-
-          const geoData = await geoRes.json();
-          if (!geoData.features || geoData.features.length === 0) {
-            throw new Error(`Could not find coordinates for "${destinationName}" in Addis Ababa`);
-          }
-
-          [destLng, destLat] = geoData.features[0].center;
+        if (!destination) {
+          console.error("Destination terminal not found in state. Aborting route calculation.");
+          return; // Or handle the UI state gracefully
         }
 
         if (!isMounted) return;
 
-        // 2. Mapbox Directions API between origin and dynamic destination terminal coordinates
+        // 2. Mapbox Directions API between origin and destination terminal coordinates
         const primaryRoute = await getRoute(
           [originLongitude, originLatitude],
-          [destination ? destination.longitude : destLng, destination ? destination.latitude : destLat]
+          [destination.longitude, destination.latitude]
         );
 
         if (!isMounted) return;
@@ -190,7 +174,7 @@ export default function TerminalMap({
         setRouteDetails({
           distanceMeters: primaryRoute.distance,
           durationSeconds: primaryRoute.duration,
-          destinationCoords: [destLng, destLat],
+          destinationCoords: [destination.longitude, destination.latitude],
         });
 
         // Fit map viewport to show the complete driving route path
