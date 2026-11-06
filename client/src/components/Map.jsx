@@ -123,28 +123,40 @@ export default function TerminalMap({
       setRouteError(null);
 
       try {
-        // 1. Mapbox Geocoding API: fetch destination coordinates with "Addis Ababa" appended
-        const query = encodeURIComponent(`${destinationName.trim()}, Addis Ababa`);
-        const geocodingUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${MAPBOX_TOKEN}&proximity=${originLongitude},${originLatitude}&limit=1`;
+        // Resolve dynamic destination coordinates from destination terminal object if available
+        const destination = terminals.find(
+          (t) =>
+            t.name?.toLowerCase().trim() === destinationName?.toLowerCase().trim() ||
+            (activeRouteSelection.destinationTerminalId && t.id === activeRouteSelection.destinationTerminalId)
+        );
 
-        const geoRes = await fetch(geocodingUrl, { signal: abortController.signal });
-        if (!geoRes.ok) {
-          throw new Error(`Geocoding failed with status ${geoRes.status}`);
+        let destLng = destination?.longitude ? parseFloat(destination.longitude) : null;
+        let destLat = destination?.latitude ? parseFloat(destination.latitude) : null;
+
+        if (destLng === null || destLat === null || isNaN(destLng) || isNaN(destLat)) {
+          // Fallback: Mapbox Geocoding API if not found directly in loaded terminals
+          const query = encodeURIComponent(`${destinationName.trim()}, Addis Ababa`);
+          const geocodingUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${MAPBOX_TOKEN}&proximity=${originLongitude},${originLatitude}&limit=1`;
+
+          const geoRes = await fetch(geocodingUrl, { signal: abortController.signal });
+          if (!geoRes.ok) {
+            throw new Error(`Geocoding failed with status ${geoRes.status}`);
+          }
+
+          const geoData = await geoRes.json();
+          if (!geoData.features || geoData.features.length === 0) {
+            throw new Error(`Could not find coordinates for "${destinationName}" in Addis Ababa`);
+          }
+
+          [destLng, destLat] = geoData.features[0].center;
         }
-
-        const geoData = await geoRes.json();
-        if (!geoData.features || geoData.features.length === 0) {
-          throw new Error(`Could not find coordinates for "${destinationName}" in Addis Ababa`);
-        }
-
-        const [destLng, destLat] = geoData.features[0].center;
 
         if (!isMounted) return;
 
-        // 2. Mapbox Directions API (driving profile) between origin and destination
+        // 2. Mapbox Directions API between origin and dynamic destination terminal coordinates
         const primaryRoute = await getRoute(
           [originLongitude, originLatitude],
-          [destLng, destLat]
+          [destination ? destination.longitude : destLng, destination ? destination.latitude : destLat]
         );
 
         if (!isMounted) return;
