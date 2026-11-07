@@ -155,6 +155,23 @@ export default function AdminLayout() {
                 </span>
                 <span>Action History</span>
               </NavLink>
+
+              <NavLink
+                to="/admin/reports"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all ${
+                    isActive
+                      ? 'bg-mengede-teal text-white font-semibold shadow-xs'
+                      : 'text-white/80 hover:bg-white/10 hover:text-white'
+                  }`
+                }
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  flag
+                </span>
+                <span>Community Reports</span>
+              </NavLink>
             </nav>
           </div>
         </div>

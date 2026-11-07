@@ -112,6 +112,14 @@ export const submitReport = (reportData) =>
     body: JSON.stringify(reportData),
   });
 
+export const fetchPendingReports = () => apiFetch('/api/reports/pending');
+
+export const updateReportStatus = (reportId, status) =>
+  apiFetch(`/api/reports/${reportId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+
 export const fetchPendingRoutes = () => apiFetch(`${API_BASE_URL}/admin/pending`);
 
 export const updateRouteStatus = (routeId, statusOrPayload, extraData = {}) => {
@@ -172,8 +180,10 @@ export const api = {
   submitRoute,
   submitReport,
   fetchPendingRoutes,
+  fetchPendingReports,
   fetchActionHistory,
   updateRouteStatus,
+  updateReportStatus,
   updateTerminalRoutes,
   bulkUpdateRouteStatus,
   adminLogin,
