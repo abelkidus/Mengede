@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { calculateDistanceKm, formatDistance } from '../utils/distance';
+import ReportIssueModal from './ReportIssueModal';
 
 export default function TerminalModal({
   terminal,
@@ -7,6 +9,9 @@ export default function TerminalModal({
   onSubmitMissingRoute,
   onViewPath,
 }) {
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportingRouteId, setReportingRouteId] = useState(null);
+
   if (!terminal) return null;
 
   const handleViewPath = (route) => {
@@ -76,14 +81,28 @@ export default function TerminalModal({
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            aria-label="Close modal"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-mengede-dark hover:bg-mengede-sage/20 active:scale-95 transition-all shrink-0 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              aria-label="Report Issue"
+              title="Report Issue"
+              onClick={() => {
+                setReportingRouteId(null);
+                setIsReportModalOpen(true);
+              }}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-rose-500 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[18px]">flag</span>
+            </button>
+            <button
+              type="button"
+              aria-label="Close modal"
+              onClick={onClose}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-mengede-dark hover:bg-mengede-sage/20 active:scale-95 transition-all shrink-0 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
         </div>
 
         {/* Routes & Fares List */}
@@ -117,6 +136,19 @@ export default function TerminalModal({
                     <span className="material-symbols-outlined text-[16px]">alt_route</span>
                     <span className="hidden sm:inline">View Path</span>
                   </button>
+                  {/* Report Route Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportingRouteId(route.id);
+                      setIsReportModalOpen(true);
+                    }}
+                    title={`Report issue with route to ${route.destinationName}`}
+                    aria-label={`Report issue with route to ${route.destinationName}`}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">flag</span>
+                  </button>
                 </div>
               </div>
             ))
@@ -149,6 +181,17 @@ export default function TerminalModal({
           </button>
         </div>
       </div>
+
+      {/* Community Report Issue Modal */}
+      <ReportIssueModal
+        isOpen={isReportModalOpen}
+        onClose={() => {
+          setIsReportModalOpen(false);
+          setReportingRouteId(null);
+        }}
+        terminalId={terminal?.id}
+        routeId={reportingRouteId}
+      />
     </div>
   );
 }

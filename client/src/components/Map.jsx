@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { calculateDistanceKm, formatDistance, formatDistanceShort } from '../utils/distance';
 import { fetchTerminals } from '../services/api';
 import { getRoute } from '../services/mapboxService';
+import ReportIssueModal from './ReportIssueModal';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -32,6 +33,8 @@ export default function TerminalMap({
   const [hoveredTerminal, setHoveredTerminal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportingRouteId, setReportingRouteId] = useState(null);
   const [internalUserLocation, setInternalUserLocation] = useState(null);
   const userLocation = propUserLocation !== undefined ? propUserLocation : internalUserLocation;
   const setUserLocation = (loc) => {
@@ -684,10 +687,39 @@ export default function TerminalMap({
             onClose={handleClosePopup}
             className="mengede-popup"
           >
-            <div className="p-1 font-['Plus_Jakarta_Sans']">
-              <div className="font-bold text-[14px] text-mengede-dark">{selectedTerminal.name}</div>
+            <div className="p-1.5 font-['Plus_Jakarta_Sans'] min-w-[170px]">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-bold text-[14px] text-mengede-dark truncate">{selectedTerminal.name}</div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReportingRouteId(activeRouteSelection?.routeId || activeRouteSelection?.id || null);
+                    setIsReportModalOpen(true);
+                  }}
+                  title="Report Issue"
+                  aria-label="Report Issue"
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-md text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[15px]">flag</span>
+                </button>
+              </div>
               <div className="text-[12px] text-mengede-primary font-medium mt-0.5">
                 {selectedTerminal.routes?.length || 0} Available Routes
+              </div>
+              <div className="mt-2 pt-1.5 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReportingRouteId(activeRouteSelection?.routeId || activeRouteSelection?.id || null);
+                    setIsReportModalOpen(true);
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 py-1 px-2 rounded-lg transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[14px]">flag</span>
+                  <span>Report Issue</span>
+                </button>
               </div>
             </div>
           </Popup>
@@ -834,6 +866,17 @@ export default function TerminalMap({
           <span>Failed to load live terminals: {error}</span>
         </div>
       )}
+
+      {/* Community Report Issue Modal */}
+      <ReportIssueModal
+        isOpen={isReportModalOpen}
+        onClose={() => {
+          setIsReportModalOpen(false);
+          setReportingRouteId(null);
+        }}
+        terminalId={selectedTerminal?.id}
+        routeId={reportingRouteId}
+      />
     </div>
   );
 }

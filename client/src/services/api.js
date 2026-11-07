@@ -78,7 +78,7 @@ export async function apiFetch(endpoint, options = {}) {
       const fieldErrorsObj = data.fieldErrors || data.details;
       if (fieldErrorsObj && typeof fieldErrorsObj === 'object') {
         const errorList = Object.entries(fieldErrorsObj)
-          .map(([field, msgs]) => (Array.isArray(msgs) ? msgs.join(', ') : msgs))
+          .map(([, msgs]) => (Array.isArray(msgs) ? msgs.join(', ') : msgs))
           .filter(Boolean);
         if (errorList.length > 0) {
           message = errorList.join('. ');
@@ -104,6 +104,12 @@ export const submitRoute = (routeData) =>
   apiFetch(`${API_BASE_URL}/routes`, {
     method: 'POST',
     body: JSON.stringify(routeData),
+  });
+
+export const submitReport = (reportData) =>
+  apiFetch('/api/reports', {
+    method: 'POST',
+    body: JSON.stringify(reportData),
   });
 
 export const fetchPendingRoutes = () => apiFetch(`${API_BASE_URL}/admin/pending`);
@@ -164,6 +170,7 @@ export const api = {
   BASE_URL,
   fetchTerminals,
   submitRoute,
+  submitReport,
   fetchPendingRoutes,
   fetchActionHistory,
   updateRouteStatus,
