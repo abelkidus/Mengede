@@ -17,6 +17,7 @@ model Terminal {
   latitude  Float
   longitude Float
   routes    Route[]
+  reports   Report[]
 }
 
 model Route {
@@ -27,4 +28,18 @@ model Route {
   status          String   @default("PENDING")
   updatedAt       DateTime @updatedAt
   origin          Terminal @relation(fields: [originId], references: [id])
+  reports         Report[]
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  category    String
+  description String
+  status      String   @default("PENDING")
+  terminalId  Int
+  terminal    Terminal @relation(fields: [terminalId], references: [id])
+  routeId     Int?
+  route       Route?   @relation(fields: [routeId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
