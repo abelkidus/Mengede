@@ -20,6 +20,7 @@ const {
   deleteTerminalSchema,
 } = require('./middleware/validate');
 const terminalRoutes = require('./routes/terminalRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -339,6 +340,9 @@ app.delete('/api/admin/terminals/:id', authMiddleware, validate(deleteTerminalSc
 // Terminal routes (including PUT /:id/routes)
 app.use('/api/terminals', terminalRoutes);
 app.use('/api/admin/terminals', terminalRoutes);
+
+// Community feedback report routes
+app.use('/api/reports', reportRoutes);
 
 // Centralized Express error-handling middleware at the bottom of the middleware stack
 app.use((err, req, res, next) => {

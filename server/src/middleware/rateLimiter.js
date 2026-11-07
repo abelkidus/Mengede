@@ -16,8 +16,20 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const submissionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many submissions from this IP. Please try again in an hour.',
+  },
+});
+
 module.exports = {
   globalLimiter,
   loginLimiter,
+  submissionLimiter,
+  rateLimiter: submissionLimiter,
 };
 
