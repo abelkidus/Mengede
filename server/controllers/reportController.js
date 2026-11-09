@@ -2,12 +2,22 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 /**
- * Public endpoint that accepts category, description, terminalId, and routeId,
+ * Public endpoint that accepts category, description, terminalId, routeId,
+ * and optional proposedFare, proposedLatitude, proposedLongitude, proposedDestinationId,
  * and saves the report to the database via Prisma.
  */
 const createReport = async (req, res, next) => {
   try {
-    const { category, description, terminalId, routeId } = req.body;
+    const {
+      category,
+      description,
+      terminalId,
+      routeId,
+      proposedFare,
+      proposedLatitude,
+      proposedLongitude,
+      proposedDestinationId,
+    } = req.body;
 
     if (!category || typeof category !== 'string' || !category.trim()) {
       return res.status(400).json({ error: 'Category is required' });
@@ -37,6 +47,22 @@ const createReport = async (req, res, next) => {
         status: 'PENDING',
         terminalId: parsedTerminalId,
         ...(parsedRouteId ? { routeId: parsedRouteId } : {}),
+        proposedFare:
+          proposedFare !== undefined && proposedFare !== null && proposedFare !== ''
+            ? parseFloat(proposedFare)
+            : null,
+        proposedLatitude:
+          proposedLatitude !== undefined && proposedLatitude !== null && proposedLatitude !== ''
+            ? parseFloat(proposedLatitude)
+            : null,
+        proposedLongitude:
+          proposedLongitude !== undefined && proposedLongitude !== null && proposedLongitude !== ''
+            ? parseFloat(proposedLongitude)
+            : null,
+        proposedDestinationId:
+          proposedDestinationId !== undefined && proposedDestinationId !== null && proposedDestinationId !== ''
+            ? String(proposedDestinationId).trim()
+            : null,
       },
       include: {
         terminal: {
@@ -66,7 +92,7 @@ const createReport = async (req, res, next) => {
 
 /**
  * Admin endpoint that fetches all reports where status is "PENDING",
- * including the related Terminal and Route names.
+ * including the related Terminal and Route names and proposed dynamic fields.
  */
 const getPendingReports = async (req, res, next) => {
   try {
@@ -74,7 +100,19 @@ const getPendingReports = async (req, res, next) => {
       where: {
         status: 'PENDING',
       },
-      include: {
+      select: {
+        id: true,
+        category: true,
+        description: true,
+        status: true,
+        terminalId: true,
+        routeId: true,
+        proposedFare: true,
+        proposedLatitude: true,
+        proposedLongitude: true,
+        proposedDestinationId: true,
+        createdAt: true,
+        updatedAt: true,
         terminal: {
           select: {
             id: true,
