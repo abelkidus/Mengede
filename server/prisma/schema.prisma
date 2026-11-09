@@ -32,14 +32,18 @@ model Route {
 }
 
 model Report {
-  id          String   @id @default(uuid())
-  category    String
-  description String
-  status      String   @default("PENDING")
-  terminalId  Int
-  terminal    Terminal @relation(fields: [terminalId], references: [id])
-  routeId     Int?
-  route       Route?   @relation(fields: [routeId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String   @id @default(uuid())
+  category              String
+  description           String
+  status                String   @default("PENDING")
+  terminalId            Int
+  terminal              Terminal @relation(fields: [terminalId], references: [id])
+  routeId               Int?
+  route                 Route?   @relation(fields: [routeId], references: [id])
+  proposedFare          Float?
+  proposedLatitude      Float?
+  proposedLongitude     Float?
+  proposedDestinationId String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
