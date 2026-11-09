@@ -876,6 +876,7 @@ export default function TerminalMap({
         }}
         terminalId={selectedTerminal?.id}
         routeId={reportingRouteId}
+        terminals={terminals}
       />
     </div>
   );

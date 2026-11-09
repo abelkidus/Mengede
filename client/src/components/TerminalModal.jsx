@@ -8,6 +8,7 @@ export default function TerminalModal({
   onClose,
   onSubmitMissingRoute,
   onViewPath,
+  terminals = [],
 }) {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportingRouteId, setReportingRouteId] = useState(null);
@@ -191,6 +192,7 @@ export default function TerminalModal({
         }}
         terminalId={terminal?.id}
         routeId={reportingRouteId}
+        terminals={terminals}
       />
     </div>
   );

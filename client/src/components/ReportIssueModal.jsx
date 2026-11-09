@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { apiFetch } from '../services/api';
+import { apiFetch, fetchTerminals } from '../services/api';
 
 const CATEGORIES = [
   'Incorrect Fare',
@@ -15,12 +15,31 @@ export default function ReportIssueModal({
   onClose,
   terminalId,
   routeId,
+  terminals = [],
 }) {
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [proposedFare, setProposedFare] = useState('');
+  const [proposedDestinationId, setProposedDestinationId] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const issueCategory = category;
+
+  // Fallback to fetch terminals if not provided by parent
+  const [localTerminals, setLocalTerminals] = useState(terminals);
+  useEffect(() => {
+    if (terminals && terminals.length > 0) {
+      setLocalTerminals(terminals);
+    } else if (isOpen) {
+      fetchTerminals()
+        .then((data) => setLocalTerminals(Array.isArray(data) ? data : []))
+        .catch(() => {});
+    }
+  }, [terminals, isOpen]);
+
+  const activeTerminals = terminals && terminals.length > 0 ? terminals : localTerminals;
+  const availableDestinations = (activeTerminals || []).filter(
+    (t) => String(t.id) !== String(terminalId)
+  );
 
   // Close on Escape key press
   useEffect(() => {
@@ -53,6 +72,8 @@ export default function ReportIssueModal({
       setIsSubmitting(true);
 
       const isIncorrectFare = issueCategory === 'Incorrect Fare';
+      const isMissingRoute = issueCategory === 'Missing Route';
+
       const payload = {
         category,
         description: trimmedDesc,
@@ -60,6 +81,9 @@ export default function ReportIssueModal({
         ...(routeId ? { routeId: Number(routeId) } : {}),
         ...(isIncorrectFare && proposedFare !== ''
           ? { proposedFare: parseFloat(proposedFare) }
+          : {}),
+        ...(isMissingRoute && proposedDestinationId !== ''
+          ? { proposedDestinationId: String(proposedDestinationId) }
           : {}),
       };
 
@@ -71,6 +95,7 @@ export default function ReportIssueModal({
       toast.success('Report submitted successfully! Thank you for helping improve Mengede.');
       setDescription('');
       setProposedFare('');
+      setProposedDestinationId('');
       setCategory(CATEGORIES[0]);
       onClose?.();
     } catch (err) {
@@ -161,6 +186,31 @@ export default function ReportIssueModal({
                 placeholder="Enter the correct fare (e.g., 15.00)..."
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-mengede-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mengede-primary focus:border-transparent text-[14px]"
               />
+            </div>
+          )}
+
+          {/* Conditional Missing Destination for Missing Route reports */}
+          {issueCategory === 'Missing Route' && (
+            <div>
+              <label
+                htmlFor="report-missing-destination"
+                className="block text-[13px] font-semibold text-mengede-dark mb-1.5"
+              >
+                Missing Destination
+              </label>
+              <select
+                id="report-missing-destination"
+                value={proposedDestinationId}
+                onChange={(e) => setProposedDestinationId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-mengede-dark focus:outline-none focus:ring-2 focus:ring-mengede-primary focus:border-transparent text-[14px] cursor-pointer"
+              >
+                <option value="">Select destination terminal...</option>
+                {availableDestinations.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
