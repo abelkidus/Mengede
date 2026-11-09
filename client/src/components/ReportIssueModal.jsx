@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import Map, { Marker, NavigationControl } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { apiFetch, fetchTerminals } from '../services/api';
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 const CATEGORIES = [
   'Incorrect Fare',
@@ -20,6 +24,7 @@ export default function ReportIssueModal({
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [proposedFare, setProposedFare] = useState('');
   const [proposedDestinationId, setProposedDestinationId] = useState('');
+  const [proposedCoords, setProposedCoords] = useState(null);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const issueCategory = category;
@@ -37,6 +42,9 @@ export default function ReportIssueModal({
   }, [terminals, isOpen]);
 
   const activeTerminals = terminals && terminals.length > 0 ? terminals : localTerminals;
+  const currentTerminal =
+    (activeTerminals || []).find((t) => String(t.id) === String(terminalId)) || null;
+
   const availableDestinations = (activeTerminals || []).filter(
     (t) => String(t.id) !== String(terminalId)
   );
@@ -73,6 +81,7 @@ export default function ReportIssueModal({
 
       const isIncorrectFare = issueCategory === 'Incorrect Fare';
       const isMissingRoute = issueCategory === 'Missing Route';
+      const isRelocated = issueCategory === 'Terminal Relocated';
 
       const payload = {
         category,
@@ -85,6 +94,12 @@ export default function ReportIssueModal({
         ...(isMissingRoute && proposedDestinationId !== ''
           ? { proposedDestinationId: String(proposedDestinationId) }
           : {}),
+        ...(isRelocated && proposedCoords
+          ? {
+              proposedLongitude: proposedCoords.longitude,
+              proposedLatitude: proposedCoords.latitude,
+            }
+          : {}),
       };
 
       await apiFetch('/api/reports', {
@@ -96,6 +111,7 @@ export default function ReportIssueModal({
       setDescription('');
       setProposedFare('');
       setProposedDestinationId('');
+      setProposedCoords(null);
       setCategory(CATEGORIES[0]);
       onClose?.();
     } catch (err) {
@@ -115,7 +131,7 @@ export default function ReportIssueModal({
       aria-labelledby="report-modal-title"
     >
       <div
-        className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-mengede-sage/30 flex flex-col gap-4 animate-slide-up pointer-events-auto"
+        className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-mengede-sage/30 flex flex-col gap-4 animate-slide-up pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -211,6 +227,70 @@ export default function ReportIssueModal({
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Conditional Relocated Terminal Map Canvas */}
+          {issueCategory === 'Terminal Relocated' && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-[13px] font-semibold text-mengede-dark">
+                  New Terminal Location
+                </label>
+                {proposedCoords && (
+                  <span className="text-[11px] font-mono text-mengede-primary font-semibold">
+                    {proposedCoords.latitude.toFixed(4)}, {proposedCoords.longitude.toFixed(4)}
+                  </span>
+                )}
+              </div>
+              <div className="w-full h-48 rounded-xl overflow-hidden border border-gray-300 relative shadow-inner">
+                <Map
+                  initialViewState={{
+                    longitude: currentTerminal?.longitude || 38.7480,
+                    latitude: currentTerminal?.latitude || 9.0320,
+                    zoom: 14,
+                  }}
+                  mapboxAccessToken={MAPBOX_TOKEN}
+                  mapStyle="mapbox://styles/mapbox/light-v11"
+                  style={{ width: '100%', height: '100%' }}
+                  onClick={(e) => {
+                    const { lng, lat } = e.lngLat;
+                    setProposedCoords({ longitude: lng, latitude: lat });
+                  }}
+                >
+                  <NavigationControl position="bottom-right" showCompass={false} />
+                  <Marker
+                    longitude={proposedCoords?.longitude ?? (currentTerminal?.longitude || 38.7480)}
+                    latitude={proposedCoords?.latitude ?? (currentTerminal?.latitude || 9.0320)}
+                    draggable={true}
+                    onDragEnd={(e) => {
+                      setProposedCoords({
+                        longitude: e.lngLat.lng,
+                        latitude: e.lngLat.lat,
+                      });
+                    }}
+                    anchor="bottom"
+                  >
+                    <div className="relative group cursor-grab active:cursor-grabbing flex flex-col items-center">
+                      <div className="px-2 py-0.5 mb-1 bg-mengede-dark text-white text-[10px] font-bold rounded-md shadow-md whitespace-nowrap border border-white/20 flex items-center gap-1 pointer-events-none select-none">
+                        <span className="material-symbols-outlined text-[12px] text-amber-300">
+                          drag_indicator
+                        </span>
+                        <span>Drag pin</span>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg border-2 border-white ring-2 ring-rose-400/40">
+                        <span className="material-symbols-outlined text-[18px]">
+                          location_on
+                        </span>
+                      </div>
+                      <div className="w-2 h-2 bg-rose-500 rotate-45 -mt-1 shadow-xs" />
+                    </div>
+                  </Marker>
+                </Map>
+              </div>
+              <p className="text-[11px] text-mengede-dark/60">
+                Drag the pin or click on the map to pinpoint where the terminal has moved.
+              </p>
             </div>
           )}
 
