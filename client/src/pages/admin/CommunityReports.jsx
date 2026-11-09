@@ -125,12 +125,16 @@ export default function CommunityReports() {
         const desc = (item.description || '').toLowerCase();
         const terminalName = (item.terminal?.name || '').toLowerCase();
         const dest = (item.route?.destinationName || '').toLowerCase();
+        const proposedFareStr = item.proposedFare != null ? String(item.proposedFare) : '';
+        const proposedDestStr = (item.proposedDestinationId || '').toLowerCase();
 
         return (
           cat.includes(query) ||
           desc.includes(query) ||
           terminalName.includes(query) ||
-          dest.includes(query)
+          dest.includes(query) ||
+          proposedFareStr.includes(query) ||
+          proposedDestStr.includes(query)
         );
       }
 
@@ -356,8 +360,46 @@ export default function CommunityReports() {
                           </span>
                         </td>
 
-                        {/* Description */}
+                        {/* Description / Details */}
                         <td className="py-4 px-5 align-top max-w-xs md:max-w-md">
+                          {/* Dynamic Suggested Data */}
+                          {report.category === 'Incorrect Fare' &&
+                            report.proposedFare !== null &&
+                            report.proposedFare !== undefined && (
+                              <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
+                                <span className="material-symbols-outlined text-[15px] text-amber-600">
+                                  payments
+                                </span>
+                                <span>Suggested Fare: {report.proposedFare} Birr</span>
+                              </div>
+                            )}
+
+                          {report.category === 'Missing Route' &&
+                            report.proposedDestinationId !== null &&
+                            report.proposedDestinationId !== undefined && (
+                              <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-semibold bg-teal-50 text-mengede-teal border border-mengede-sage/40 shadow-2xs">
+                                <span className="material-symbols-outlined text-[15px] text-mengede-primary">
+                                  add_road
+                                </span>
+                                <span>Suggested Destination ID: {report.proposedDestinationId}</span>
+                              </div>
+                            )}
+
+                          {report.category === 'Terminal Relocated' &&
+                            report.proposedLatitude !== null &&
+                            report.proposedLatitude !== undefined &&
+                            report.proposedLongitude !== null &&
+                            report.proposedLongitude !== undefined && (
+                              <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200 shadow-2xs font-mono">
+                                <span className="material-symbols-outlined text-[15px] text-indigo-600">
+                                  near_me
+                                </span>
+                                <span>
+                                  Suggested Location: [{report.proposedLatitude}, {report.proposedLongitude}]
+                                </span>
+                              </div>
+                            )}
+
                           <p className="text-[13px] text-mengede-dark leading-relaxed whitespace-pre-wrap break-words">
                             {report.description}
                           </p>
