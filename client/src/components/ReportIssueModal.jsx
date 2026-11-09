@@ -17,8 +17,10 @@ export default function ReportIssueModal({
   routeId,
 }) {
   const [category, setCategory] = useState(CATEGORIES[0]);
+  const [proposedFare, setProposedFare] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const issueCategory = category;
 
   // Close on Escape key press
   useEffect(() => {
@@ -50,11 +52,15 @@ export default function ReportIssueModal({
     try {
       setIsSubmitting(true);
 
+      const isIncorrectFare = issueCategory === 'Incorrect Fare';
       const payload = {
         category,
         description: trimmedDesc,
         terminalId: Number(terminalId),
         ...(routeId ? { routeId: Number(routeId) } : {}),
+        ...(isIncorrectFare && proposedFare !== ''
+          ? { proposedFare: parseFloat(proposedFare) }
+          : {}),
       };
 
       await apiFetch('/api/reports', {
@@ -64,6 +70,7 @@ export default function ReportIssueModal({
 
       toast.success('Report submitted successfully! Thank you for helping improve Mengede.');
       setDescription('');
+      setProposedFare('');
       setCategory(CATEGORIES[0]);
       onClose?.();
     } catch (err) {
@@ -134,6 +141,28 @@ export default function ReportIssueModal({
               ))}
             </select>
           </div>
+
+          {/* Conditional Proposed Fare for Incorrect Fare reports */}
+          {issueCategory === 'Incorrect Fare' && (
+            <div>
+              <label
+                htmlFor="report-proposed-fare"
+                className="block text-[13px] font-semibold text-mengede-dark mb-1.5"
+              >
+                Proposed Fare (Birr)
+              </label>
+              <input
+                id="report-proposed-fare"
+                type="number"
+                min="0"
+                step="0.5"
+                value={proposedFare}
+                onChange={(e) => setProposedFare(e.target.value)}
+                placeholder="Enter the correct fare (e.g., 15.00)..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-mengede-dark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-mengede-primary focus:border-transparent text-[14px]"
+              />
+            </div>
+          )}
 
           {/* Description Textarea */}
           <div>
