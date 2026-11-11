@@ -24,4 +24,4 @@ By bridging the gap between physical transit infrastructure and digital accessib
 ### 📚 Project Resources
 * **Live Site:** [https://mengede.vercel.app](https://mengede.vercel.app)
 * **Project Documentation:** [View Project Report](https://drive.google.com/file/d/1ApSqd5fthc4w3lIzHg6O7KA-i4-exvVs/view?usp=drive_link)
-* **Video Demonstration:** [Watch Demo](https://drive.google.com/file/d/1XpZqd5fthc4w3lIzHg6O7KA-i4-exvVs/vew?usp=sharing)
+* **Video Demonstration:** [Watch Video Demo](https://drive.google.com/file/d/1XpZqd5fthc4w3lIzHg6O7KA-i4-exvVs/vew?usp=sharing)
